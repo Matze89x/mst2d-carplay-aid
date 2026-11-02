@@ -1,0 +1,31 @@
+#ifndef DCC_RUNTIME_HOOK_H
+#define DCC_RUNTIME_HOOK_H
+
+#include "dcc_arm32_hook.h"
+#include <stdint.h>
+
+/* Install only during the preload constructor, before CarPlay worker threads
+ * can execute libAirPlay. Returns the callable original trampoline or NULL. */
+void *dcc_runtime_hook_install(void *target, void *replacement,
+                               const uint32_t expected[2],
+                               enum dcc_arm32_relocation relocation,
+                               uint32_t literal);
+
+struct dcc_airplay_hook_target {
+    uintptr_t base;
+    void *copy_server_info;
+    void *setup;
+    void *start;
+    void *teardown;
+    void *platform_control;
+    void *control;
+    void *session_security_info;
+    void *screen_security_info;
+    void *derive_key;
+};
+
+/* Resolves and verifies all exact stock addresses/prologues of the EU target as one unit.
+ * A partial or shifted match is rejected. */
+int dcc_airplay_hook_resolve(struct dcc_airplay_hook_target *target);
+
+#endif

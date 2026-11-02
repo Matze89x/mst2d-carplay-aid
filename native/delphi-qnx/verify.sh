@@ -1,0 +1,47 @@
+#!/bin/sh
+set -eu
+HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+OUT=${OUT:-"$HERE/build"}
+IPOD="$OUT/libmst2_eu_ipod.so"
+LAUNCH="$OUT/libmst2_eu_launch.so"
+VIDEO="$OUT/libmst2_eu_video_gate.so"
+AIRPLAY_RUNTIME="$OUT/libmst2_eu_airplay_runtime.so"
+AIRPLAY="$OUT/libmst2_eu_airplay.so"
+imports(){ readelf --dyn-syms --wide "$1" | awk '$7=="UND" && $8!=""{print $8}' | sort -u; }
+
+for file in "$IPOD" "$LAUNCH" "$VIDEO" "$AIRPLAY_RUNTIME" "$AIRPLAY"; do
+  echo "verifying $file"
+  readelf -h "$file" | grep -E 'Class:|Data:|Type:|Machine:'
+  readelf -d "$file" | grep -E 'NEEDED|INIT'
+  echo "imports: $(imports "$file" 2>/dev/null || true)"
+  test -s "$file"
+  readelf -h "$file" | grep -q 'Class:.*ELF32'
+  readelf -h "$file" | grep -q 'Data:.*little endian'
+  readelf -h "$file" | grep -q 'Type:.*DYN'
+  readelf -h "$file" | grep -q 'Machine:.*ARM'
+  test "$(readelf -d "$file" | awk '/NEEDED/{gsub(/[][]/,"",$5);print $5}')" = libc.so.3
+done
+readelf --dyn-syms --wide "$LAUNCH" | grep -Eq 'GLOBAL +DEFAULT +[0-9]+ +spawn$'
+readelf --dyn-syms --wide "$LAUNCH" | grep -Eq 'GLOBAL +DEFAULT +[0-9]+ +spawnp$'
+readelf -d "$IPOD" | grep -q '(INIT)'
+readelf -d "$VIDEO" | grep -q '(INIT)'
+readelf --syms --wide "$IPOD" | grep -Eq '[0-9]+ +dcc_delphi_init$'
+
+unexpected=$(imports "$IPOD" | grep -Ev '^(close|delay|dlopen|dlsym|lseek|memcmp|memcpy|memset|open|pthread_create|pthread_detach|read|rename|strlen|write)$' || true)
+test -z "$unexpected"
+unexpected=$(imports "$LAUNCH" | grep -Ev '^(dlsym|strlen)$' || true)
+test -z "$unexpected"
+unexpected=$(imports "$VIDEO" | grep -Ev '^(close|delay|dlsym|lseek|memcpy|memset|mmap|open|pthread_create|pthread_detach|write|writev)$' || true)
+test -z "$unexpected"
+unexpected=$(imports "$AIRPLAY_RUNTIME" | grep -Ev '^(close|dlsym|ftruncate|memcpy|memset|mmap|mprotect|msync|munmap|open)$' || true)
+test -z "$unexpected"
+readelf --dyn-syms --wide "$AIRPLAY_RUNTIME" | grep -Eq 'GLOBAL +DEFAULT +[0-9]+ +dcc_airplay_hook_resolve$'
+readelf --dyn-syms --wide "$AIRPLAY_RUNTIME" | grep -Eq 'GLOBAL +DEFAULT +[0-9]+ +dcc_runtime_hook_install$'
+readelf --dyn-syms --wide "$AIRPLAY_RUNTIME" | grep -Eq 'GLOBAL +DEFAULT +[0-9]+ +dcc_alt111_ingress_begin$'
+readelf --dyn-syms --wide "$AIRPLAY_RUNTIME" | grep -Eq 'GLOBAL +DEFAULT +[0-9]+ +dcc_alt111_ingress_feed$'
+unexpected=$(imports "$AIRPLAY" | grep -Ev '^(accept|close|delay|dlsym|ftruncate|memcpy|memset|mmap|mprotect|msync|munmap|open|pthread_create|pthread_join|read|shutdown)$' || true)
+test -z "$unexpected"
+readelf -d "$AIRPLAY" | grep -q '(INIT)'
+readelf --dyn-syms --wide "$AIRPLAY" | grep -Eq 'GLOBAL +DEFAULT +[0-9]+ +AES_CBCFrame_Init$'
+readelf --syms --wide "$AIRPLAY" | grep -Eq '[0-9]+ +dcc_airplay_hook_init$'
+echo 'EU ARM ELF payload verified'

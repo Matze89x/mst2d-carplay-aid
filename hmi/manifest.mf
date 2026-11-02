@@ -1,0 +1,6 @@
+Manifest-Version: 1.0
+Bundle-Activator: mst2.eu.cluster.Activator
+Bundle-Name: MST2 EU RGI Cluster Bridge
+Bundle-SymbolicName: mst2.eu.rgi.cluster
+Bundle-Version: 0.3.0
+
