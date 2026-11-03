@@ -73,6 +73,12 @@ Hooks stimmen mit der EU-Firmware überein.
   Die Sicherungen auf der SD-Karte bleiben zur Analyse erhalten. `BACKUP_DIR_OVERRIDE` erlaubt die Wiederherstellung aus
   einer Kopie der Sicherung.
 - Meldungen zweisprachig (Deutsch zuerst); Löschziele mit `${VAR:?}` abgesichert.
+- **Beta 2, Werkzeug-Schicht `installer/tools.sh`:** Der erste Test in einem echten Radio (Beta 1) brach sofort ab, weil dem Radio beim
+  Start `dirname`, `cksum`, `id`, `tail`, `uptime` und `expr` fehlen. Seitdem rufen die Skripte direkt nur noch `cp rm mkdir rmdir chmod ls mount grep`
+  auf; alles andere geht über Funktionen, die das Programm nutzen, wenn es da ist, und sonst eine reine Shell-Lösung verwenden (Vergleich:
+  `cmp`, `diff`, SHA-256, `cksum`, zuletzt nur die Größe). Fehlt etwas Zwingendes, bricht der Installer **vor jeder Änderung** mit einer klaren Meldung ab.
+  Die Prüfung der Zeilen von `runHMI.sh` ist byte-genau ohne `head`/`tail`. Das SD-Skript schreibt zusätzlich `werkzeuge_<KENNUNG>.txt`
+  (PATH und Inhalt der Programmordner des Radios). Die Proben laufen jetzt auch in einer eingeschränkten Umgebung (`LIMITED=1`).
 
 ## 6. Tests
 
@@ -189,6 +195,12 @@ All 18 fixed addresses and function prologues of the hooks match the EU firmware
   **everything** of this project from the unit (payload **and** backup on the unit), checking for leftovers. The backups on
   the SD card are kept for analysis. `BACKUP_DIR_OVERRIDE` allows restoring from a copy of the backup.
 - Messages are bilingual (German first); removal targets are guarded with `${VAR:?}`.
+- **Beta 2, tool layer `installer/tools.sh`:** the first test in a real radio (beta 1) stopped at once because the radio lacks `dirname`,
+  `cksum`, `id`, `tail`, `uptime` and `expr` at boot. The scripts now call only `cp rm mkdir rmdir chmod ls mount grep` directly; everything else goes
+  through functions that use the program if it exists and a pure shell solution otherwise (comparison: `cmp`, `diff`, SHA-256, `cksum`, last resort size only).
+  If something essential is missing, the installer aborts **before any change** with a clear message. The `runHMI.sh` line edit is byte-exact without
+  `head`/`tail`. The SD script additionally writes `werkzeuge_<ID>.txt` (PATH and the contents of the radio's program folders). The rehearsals now also run
+  in a restricted environment (`LIMITED=1`).
 
 ## 6. Tests
 

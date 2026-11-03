@@ -8,7 +8,15 @@
 
 set -u
 
-SELF_DIR=$(cd "$(dirname "$0")" && pwd)
+# Eigener Ordner ohne dirname (fehlt auf dem Radio) / own folder without dirname (missing on the radio)
+case $0 in
+    */*)
+        _sd=${0%/*}
+        [ -n "$_sd" ] || _sd=/
+        ;;
+    *) _sd=. ;;
+esac
+SELF_DIR=$(cd "$_sd" && pwd)
 # APP_ROOT, ETC_DIR, SD_BACKUP_DIR und BACKUP_DIR_OVERRIDE lassen sich fuer Tests/Notfaelle umbiegen
 # can be redirected for tests/emergencies. BACKUP_DIR_OVERRIDE: Kopie der Sicherung, z. B. von der SD-Karte / copy of the backup, e.g. from the SD card
 APP_ROOT=${APP_ROOT:-/extbin/apps}
@@ -28,22 +36,26 @@ fail() {
 restore() {
     cp "$BACKUP_DIR/$1" "$2" || fail "$2 nicht wiederherstellbar" "could not restore $2"
     chmod "$3" "$2" || fail "Rechte von $2 nicht setzbar" "could not restore permissions for $2"
-    cmp -s "$BACKUP_DIR/$1" "$2" || fail "Pruefung von $2 fehlgeschlagen" "verification failed for $2"
+    t_same "$BACKUP_DIR/$1" "$2" || fail "Pruefung von $2 fehlgeschlagen" "verification failed for $2"
 }
+
+[ -f "$SELF_DIR/tools.sh" ] || fail "tools.sh fehlt in $SELF_DIR" "tools.sh is missing in $SELF_DIR"
+. "$SELF_DIR/tools.sh" || fail "tools.sh nicht lesbar" "tools.sh is unreadable"
 
 echo "MST2 CarPlay Maps - Deinstallation (Beta)"
 echo "  uninstaller"
-[ "$(id -u)" = "0" ] || fail "als root starten (Root-Shell)" "run this script from a root shell"
+t_report
+t_isroot || fail "als root starten (Root-Shell)" "run this script from a root shell"
+MISSING=$(t_missing_essential)
+[ -z "$MISSING" ] || fail "auf diesem Radio fehlen zwingend benoetigte Programme:$MISSING - es wurde nichts geaendert" "essential programs are missing on this radio:$MISSING - nothing was changed"
 for f in $BACKUP_FILES; do
     [ -f "$BACKUP_DIR/$f" ] || fail "Sicherung unvollstaendig oder nicht gefunden: $BACKUP_DIR/$f" "stock backup is incomplete or not found: $BACKUP_DIR/$f"
 done
 
 mount -uw / >/dev/null 2>&1
 mount -uw "$APP_ROOT" >/dev/null 2>&1
-touch "$APP_ROOT/.mst2-eu-write-test" 2>/dev/null || fail "$APP_ROOT ist nicht beschreibbar" "$APP_ROOT is not writable"
-rm -f "${APP_ROOT:?}/.mst2-eu-write-test"
-touch "$ETC_DIR/.mst2-eu-write-test" 2>/dev/null || fail "$ETC_DIR ist nicht beschreibbar" "$ETC_DIR is not writable"
-rm -f "${ETC_DIR:?}/.mst2-eu-write-test"
+t_writetest "$APP_ROOT" || fail "$APP_ROOT ist nicht beschreibbar" "$APP_ROOT is not writable"
+t_writetest "$ETC_DIR" || fail "$ETC_DIR ist nicht beschreibbar" "$ETC_DIR is not writable"
 
 # 1. Originale zurueck und einzeln pruefen / put the originals back and verify each one
 restore iap2.cfg "$APP_ROOT/cfg/iap2.cfg" 644
@@ -66,7 +78,7 @@ if [ "$BACKUP_DIR" = "$MMI_BACKUP_DIR" ]; then
     if [ "$SD_OK" = "1" ]; then
         for f in $BACKUP_FILES runHMI.variant; do
             [ -f "$BACKUP_DIR/$f" ] || continue
-            cp "$BACKUP_DIR/$f" "$SD_BACKUP_DIR/$f" 2>/dev/null && cmp -s "$BACKUP_DIR/$f" "$SD_BACKUP_DIR/$f" || SD_OK=0
+            cp "$BACKUP_DIR/$f" "$SD_BACKUP_DIR/$f" 2>/dev/null && t_same "$BACKUP_DIR/$f" "$SD_BACKUP_DIR/$f" || SD_OK=0
         done
     fi
     if [ "$SD_OK" = "1" ]; then
@@ -90,8 +102,8 @@ for f in $BACKUP_FILES runHMI.variant; do
     rm -f "${MMI_BACKUP_DIR:?}/${f:?}"
 done
 rmdir "$MMI_BACKUP_DIR" 2>/dev/null
-sync
-command -v MountPathSync >/dev/null 2>&1 && MountPathSync "$APP_ROOT"
+t_sync
+t_have MountPathSync && MountPathSync "$APP_ROOT"
 
 # 4. Kontrolle: nichts darf zurueckbleiben / check: nothing may remain
 LEFT=0
@@ -99,13 +111,13 @@ if [ -e "$INSTALL_DIR" ]; then
     LEFT=1
     echo "FEHLER: Es sind Reste auf dem Geraet geblieben: $INSTALL_DIR"
     echo "  ERROR: leftovers remain on the unit: $INSTALL_DIR"
-    ls -A "$INSTALL_DIR"
+    t_lsall "$INSTALL_DIR"
 fi
 if [ -e "$MMI_BACKUP_DIR" ]; then
     LEFT=1
     echo "FEHLER: Es sind Reste auf dem Geraet geblieben: $MMI_BACKUP_DIR"
     echo "  ERROR: leftovers remain on the unit: $MMI_BACKUP_DIR"
-    ls -A "$MMI_BACKUP_DIR"
+    t_lsall "$MMI_BACKUP_DIR"
 fi
 [ "$LEFT" = "0" ] || exit 1
 

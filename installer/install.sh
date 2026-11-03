@@ -17,7 +17,15 @@
 
 set -u
 
-SELF_DIR=$(cd "$(dirname "$0")" && pwd)
+# Eigener Ordner ohne dirname (fehlt auf dem Radio) / own folder without dirname (missing on the radio)
+case $0 in
+    */*)
+        _sd=${0%/*}
+        [ -n "$_sd" ] || _sd=/
+        ;;
+    *) _sd=. ;;
+esac
+SELF_DIR=$(cd "$_sd" && pwd)
 # APP_ROOT, ETC_DIR und SD_BACKUP_DIR lassen sich fuer Tests/Notfaelle umbiegen / can be redirected for tests/emergencies
 APP_ROOT=${APP_ROOT:-/extbin/apps}
 ETC_DIR=${ETC_DIR:-/etc}
@@ -43,7 +51,7 @@ fail() {
 }
 
 bytes() {
-    wc -c < "$1" | tr -d ' '
+    t_size "$1"
 }
 
 # expect_pair DATEI "GROESSE SHA256" NAME: Groesse immer, SHA-256 wenn sha256sum vorhanden ist
@@ -54,8 +62,8 @@ expect_pair() {
     WANT_HASH=${2##* }
     ACTUAL=$(bytes "$1")
     [ "$ACTUAL" = "$WANT_SIZE" ] || fail "$3: unerwartete Groesse ($ACTUAL, erwartet $WANT_SIZE); das ist nicht $TARGET_TRAIN" "$3: unexpected size ($ACTUAL, expected $WANT_SIZE); this is not $TARGET_TRAIN"
-    if command -v sha256sum >/dev/null 2>&1; then
-        ACTUAL_HASH=$(sha256sum "$1" | awk '{print $1}')
+    if [ "$H_sha256sum" = "1" ]; then
+        ACTUAL_HASH=$(t_sha "$1")
         [ "$ACTUAL_HASH" = "$WANT_HASH" ] || fail "$3: unerwarteter SHA-256; das ist nicht $TARGET_TRAIN" "$3: unexpected SHA-256; this is not $TARGET_TRAIN"
     else
         echo "Hinweis: sha256sum fehlt, geprueft wird nur die Groesse ($3)."
@@ -69,7 +77,7 @@ copy_checked() {
     MODE=$3
     cp "$SOURCE" "$DESTINATION" || return 1
     chmod "$MODE" "$DESTINATION" || return 1
-    cmp -s "$SOURCE" "$DESTINATION" || return 1
+    t_same "$SOURCE" "$DESTINATION" || return 1
     return 0
 }
 
@@ -79,13 +87,12 @@ sd_writable() {
     D=$1
     while [ ! -d "$D" ]; do
         [ -e "$D" ] && return 1
-        P=$(dirname "$D")
+        P=$(t_dirname "$D")
         [ "$P" = "$D" ] && return 1
         D=$P
     done
     mount -uw "$D" >/dev/null 2>&1
-    touch "$D/.mst2-sd-write-test" 2>/dev/null || return 1
-    rm -f "${D:?}/.mst2-sd-write-test"
+    t_writetest "$D" || return 1
     return 0
 }
 
@@ -118,7 +125,7 @@ rollback() {
     rm -f "${INSTALL_DIR:?}/libmst2_eu_ipod.so" "${INSTALL_DIR:?}/libmst2_eu_launch.so"
     rm -f "${INSTALL_DIR:?}/libmst2_eu_video_gate.so" "${INSTALL_DIR:?}/libmst2_eu_airplay.so"
     rm -f "${INSTALL_DIR:?}/mst2-eu-rgi-hmi.jar" "${MARKER:?}"
-    sync
+    t_sync
     echo "Originaldateien wiederhergestellt. NICHT neu starten, bevor die Fehler oben verstanden sind."
     echo "  Stock files restored. Do not reboot until the errors above are understood."
     echo "Die Sicherungen bleiben erhalten: $BACKUP_DIR und $SD_BACKUP_DIR"
@@ -136,20 +143,42 @@ g() {
 # Appends the HMI jar to the first boot class path assignment (stock OR community patch such as NavIgnore).
 # Byte-exact: only that one line is replaced, the rest of the file stays unchanged (even without a trailing newline).
 patch_hmi() {
-    N=$(g -n '^BOOTCLASSPATH="/' "$1" | head -n 1 | cut -d: -f1)
-    [ -n "$N" ] || return 3
-    LINE=$(head -n "$N" "$1" | tail -n 1)
-    case "$LINE" in
-        *\") ;;
-        *) return 3 ;;
-    esac
-    NEW="${LINE%\"}:$JAR_REF\""
-    head -n $((N - 1)) "$1" > "$2" || return 1
-    printf '%s\n' "$NEW" >> "$2" || return 1
-    tail -n +$((N + 1)) "$1" >> "$2" || return 1
+    # reine Shell-Fassung (kein head/tail/cut auf dem Radio): liest Zeile fuer Zeile, aendert nur die erste
+    # BOOTCLASSPATH-Zeile; die Gesamtgroesse wird danach gegen den erwarteten Wert geprueft
+    # pure shell version (no head/tail/cut on the radio): reads line by line, changes only the first
+    # BOOTCLASSPATH line; the total size is checked against the expected value afterwards
+    PH_DONE=0
+    : > "$2" || return 1
+    while :; do
+        if IFS= read -r PH_LINE; then
+            PH_NL=1
+        else
+            PH_NL=0
+            [ -n "$PH_LINE" ] || break
+        fi
+        if [ "$PH_DONE" = "0" ]; then
+            case $PH_LINE in
+                BOOTCLASSPATH=\"/*)
+                    case $PH_LINE in
+                        *\") ;;
+                        *) return 3 ;;
+                    esac
+                    PH_LINE="${PH_LINE%\"}:$JAR_REF\""
+                    PH_DONE=1
+                    ;;
+            esac
+        fi
+        # fehlt das Zeilenende der letzten Zeile, bleibt es auch im Ergebnis weg (byte-genau)
+        # if the last line has no line ending, the result keeps it that way (byte-exact)
+        if [ "$PH_NL" = "1" ]; then t_emit "$PH_LINE" >> "$2" || return 1; else t_emit_nonl "$PH_LINE" >> "$2" || return 1; fi
+    done < "$1"
+    [ "$PH_DONE" = "1" ] || return 3
+    return 0
 }
 
-[ -f "$SELF_DIR/stage.conf" ] || fail "stage.conf fehlt" "stage.conf is missing"
+[ -f "$SELF_DIR/tools.sh" ] || fail "tools.sh fehlt in $SELF_DIR" "tools.sh is missing in $SELF_DIR"
+. "$SELF_DIR/tools.sh" || fail "tools.sh nicht lesbar" "tools.sh is unreadable"
+[ -f "$SELF_DIR/stage.conf" ] || fail "stage.conf fehlt in $SELF_DIR" "stage.conf is missing in $SELF_DIR"
 . "$SELF_DIR/stage.conf" || fail "stage.conf nicht lesbar" "stage.conf is unreadable"
 
 if [ -z "$SD_BACKUP_DIR" ]; then
@@ -165,7 +194,14 @@ echo "Vorgesehene Hardware / intended hardware: Radio 3Q0 035 864 (ohne Index/A/
 echo "Kombi / cluster: nur AID 1 (12,3 Zoll, 1440x540), NICHT AID 2 (10,25 Zoll, 1280x480); der Installer kann das nicht pruefen. / only AID 1 (12.3 inch, 1440x540), NOT AID 2 (10.25 inch, 1280x480); the installer cannot check this."
 echo
 
-[ "$(id -u)" = "0" ] || fail "als root starten (Root-Shell)" "run this script from a root shell"
+t_report
+t_isroot || fail "als root starten (Root-Shell)" "run this script from a root shell"
+MISSING=$(t_missing_essential)
+[ -z "$MISSING" ] || fail "auf diesem Radio fehlen zwingend benoetigte Programme:$MISSING - es wurde nichts geaendert" "essential programs are missing on this radio:$MISSING - nothing was changed"
+if [ "$(t_same_method)" = "groesse-size" ]; then
+    echo "Hinweis: Das Radio hat weder cmp, diff, sha256sum noch cksum; kopierte Dateien werden nur ueber ihre Groesse geprueft."
+    echo "  Note: the radio has no cmp, diff, sha256sum or cksum; copied files are verified by size only."
+fi
 [ -d "$SELF_DIR/payload" ] || fail "Ordner payload fehlt" "payload directory is missing"
 [ -d "$SELF_DIR/patched" ] || fail "Ordner patched fehlt" "patched directory is missing"
 [ ! -e "$MARKER" ] || fail "bereits installiert; zuerst uninstall.sh ausfuehren" "already installed; run uninstall.sh first"
@@ -203,9 +239,10 @@ grep -q 'LD_PRELOAD=.*/mst2-eu-carplay-maps' "$ETC_DIR/procman_core.cfg" && fail
 HMI_NEW=${TMPDIR:-/tmp}/mst2-runHMI.new.$$
 patch_hmi "$HMI_LIVE" "$HMI_NEW" || { rm -f "${HMI_NEW:?}"; fail "Boot-Klassenpfad in runHMI.sh nicht erkannt" "boot class path in runHMI.sh not recognized"; }
 [ "$(g -c "$JAR_REF" "$HMI_NEW")" = "1" ] || { rm -f "${HMI_NEW:?}"; fail "Pruefung der neuen runHMI.sh fehlgeschlagen (Jar-Zahl)" "new runHMI.sh check failed (jar count)"; }
-[ "$(wc -l < "$HMI_NEW" | tr -d ' ')" = "$(wc -l < "$HMI_LIVE" | tr -d ' ')" ] || { rm -f "${HMI_NEW:?}"; fail "Pruefung der neuen runHMI.sh fehlgeschlagen (Zeilenzahl)" "new runHMI.sh check failed (line count)"; }
+[ "$(t_lines "$HMI_NEW")" = "$(t_lines "$HMI_LIVE")" ] || { rm -f "${HMI_NEW:?}"; fail "Pruefung der neuen runHMI.sh fehlgeschlagen (Zeilenzahl)" "new runHMI.sh check failed (line count)"; }
+[ "$(t_size "$HMI_NEW")" = "$(( $(t_size "$HMI_LIVE") + ${#JAR_REF} + 1 ))" ] || { rm -f "${HMI_NEW:?}"; fail "Pruefung der neuen runHMI.sh fehlgeschlagen (Groesse)" "new runHMI.sh check failed (size)"; }
 if [ "$HMI_VARIANT" = "STOCK" ]; then
-    cmp -s "$HMI_NEW" "$SELF_DIR/patched/hmi/HMI/runHMI.sh" || { rm -f "${HMI_NEW:?}"; fail "neue runHMI.sh weicht von der vorbereiteten Datei ab" "new runHMI.sh differs from the prepared file"; }
+    t_same "$HMI_NEW" "$SELF_DIR/patched/hmi/HMI/runHMI.sh" || { rm -f "${HMI_NEW:?}"; fail "neue runHMI.sh weicht von der vorbereiteten Datei ab" "new runHMI.sh differs from the prepared file"; }
 fi
 if [ "$HMI_VARIANT" = "NAVIGNORE" ]; then
     g -q 'NavActiveIgnore.jar' "$HMI_NEW" || { rm -f "${HMI_NEW:?}"; fail "NavIgnore-Zeile ging verloren" "the NavIgnore line was lost"; }
@@ -222,10 +259,8 @@ fi
 # QNX akzeptiert mount -uw auf einem bereits eingehaengten Dateisystem. / QNX accepts mount -uw on a mounted filesystem.
 mount -uw / >/dev/null 2>&1
 mount -uw "$APP_ROOT" >/dev/null 2>&1
-touch "$APP_ROOT/.mst2-eu-write-test" 2>/dev/null || { rm -f "${HMI_NEW:?}"; fail "$APP_ROOT ist nicht beschreibbar" "$APP_ROOT is not writable"; }
-rm -f "${APP_ROOT:?}/.mst2-eu-write-test"
-touch "$ETC_DIR/.mst2-eu-write-test" 2>/dev/null || { rm -f "${HMI_NEW:?}"; fail "$ETC_DIR ist nicht beschreibbar; nichts wurde geaendert" "$ETC_DIR is not writable; no files were changed"; }
-rm -f "${ETC_DIR:?}/.mst2-eu-write-test"
+t_writetest "$APP_ROOT" || { rm -f "${HMI_NEW:?}"; fail "$APP_ROOT ist nicht beschreibbar" "$APP_ROOT is not writable"; }
+t_writetest "$ETC_DIR" || { rm -f "${HMI_NEW:?}"; fail "$ETC_DIR ist nicht beschreibbar; nichts wurde geaendert" "$ETC_DIR is not writable; no files were changed"; }
 
 # Sicherung 1: auf dem Geraet / backup 1: on the unit
 mkdir "$BACKUP_DIR" || fail "Sicherungsordner nicht anlegbar" "could not create backup directory"
@@ -235,10 +270,10 @@ cp "$APP_ROOT/hmi/HMI/config/bundles.properties" "$BACKUP_DIR/bundles.properties
 cp "$ETC_DIR/procman_core.cfg" "$BACKUP_DIR/procman_core.cfg" || discard_incomplete_backup "procman_core.cfg nicht sicherbar"
 chmod 644 "$BACKUP_DIR/iap2.cfg" "$BACKUP_DIR/bundles.properties" "$BACKUP_DIR/procman_core.cfg" || discard_incomplete_backup "Rechte der Sicherung nicht setzbar"
 chmod 755 "$BACKUP_DIR/runHMI.sh" || discard_incomplete_backup "Rechte der Sicherung nicht setzbar"
-cmp -s "$APP_ROOT/cfg/iap2.cfg" "$BACKUP_DIR/iap2.cfg" || discard_incomplete_backup "Pruefung der iap2.cfg-Sicherung fehlgeschlagen"
-cmp -s "$HMI_LIVE" "$BACKUP_DIR/runHMI.sh" || discard_incomplete_backup "Pruefung der runHMI.sh-Sicherung fehlgeschlagen"
-cmp -s "$APP_ROOT/hmi/HMI/config/bundles.properties" "$BACKUP_DIR/bundles.properties" || discard_incomplete_backup "Pruefung der bundles.properties-Sicherung fehlgeschlagen"
-cmp -s "$ETC_DIR/procman_core.cfg" "$BACKUP_DIR/procman_core.cfg" || discard_incomplete_backup "Pruefung der procman_core.cfg-Sicherung fehlgeschlagen"
+t_same "$APP_ROOT/cfg/iap2.cfg" "$BACKUP_DIR/iap2.cfg" || discard_incomplete_backup "Pruefung der iap2.cfg-Sicherung fehlgeschlagen"
+t_same "$HMI_LIVE" "$BACKUP_DIR/runHMI.sh" || discard_incomplete_backup "Pruefung der runHMI.sh-Sicherung fehlgeschlagen"
+t_same "$APP_ROOT/hmi/HMI/config/bundles.properties" "$BACKUP_DIR/bundles.properties" || discard_incomplete_backup "Pruefung der bundles.properties-Sicherung fehlgeschlagen"
+t_same "$ETC_DIR/procman_core.cfg" "$BACKUP_DIR/procman_core.cfg" || discard_incomplete_backup "Pruefung der procman_core.cfg-Sicherung fehlgeschlagen"
 echo "$HMI_VARIANT" > "$BACKUP_DIR/runHMI.variant"
 
 # Sicherung 2: zusaetzlich auf der SD-Karte, jede Datei gegen das Original geprueft
@@ -247,7 +282,7 @@ mkdir -p "$SD_BACKUP_DIR" || discard_incomplete_backup "SD-Sicherungsordner nich
 SD_CREATED=1
 sd_copy() {  # Quelle Zielname
     cp "$1" "$SD_BACKUP_DIR/$2" || return 1
-    cmp -s "$1" "$SD_BACKUP_DIR/$2" || return 1
+    t_same "$1" "$SD_BACKUP_DIR/$2" || return 1
     return 0
 }
 sd_copy "$APP_ROOT/cfg/iap2.cfg" iap2.cfg || discard_incomplete_backup "iap2.cfg nicht auf die SD-Karte sicherbar"
@@ -257,11 +292,11 @@ sd_copy "$ETC_DIR/procman_core.cfg" procman_core.cfg || discard_incomplete_backu
 echo "$HMI_VARIANT" > "$SD_BACKUP_DIR/runHMI.variant" || discard_incomplete_backup "SD-Sicherung nicht vollstaendig"
 {
     echo "Ziel / target: $TARGET_TRAIN ($TARGET_ID)"
-    echo "Datum / date: $(date 2>/dev/null)"
+    echo "Datum / date: $(t_date)"
     echo "Pfade auf dem Geraet / paths on the unit: $APP_ROOT/cfg/iap2.cfg, $HMI_LIVE, $APP_ROOT/hmi/HMI/config/bundles.properties, $ETC_DIR/procman_core.cfg"
     for f in $BACKUP_FILES; do
-        if command -v sha256sum >/dev/null 2>&1; then
-            echo "$(bytes "$SD_BACKUP_DIR/$f") $(sha256sum "$SD_BACKUP_DIR/$f" | awk '{print $1}') $f"
+        if [ "$H_sha256sum" = "1" ]; then
+            echo "$(bytes "$SD_BACKUP_DIR/$f") $(t_sha "$SD_BACKUP_DIR/$f") $f"
         else
             echo "$(bytes "$SD_BACKUP_DIR/$f") - $f"
         fi
@@ -272,7 +307,7 @@ echo "$HMI_VARIANT" > "$SD_BACKUP_DIR/runHMI.variant" || discard_incomplete_back
     echo "  Backup of the original files before installing MST2 CarPlay Maps. Keep for analysis."
 } > "$SD_BACKUP_DIR/LIESMICH.txt" || discard_incomplete_backup "SD-Sicherung nicht vollstaendig"
 for f in $BACKUP_FILES; do
-    cmp -s "$SD_BACKUP_DIR/$f" "$BACKUP_DIR/$f" || discard_incomplete_backup "SD-Sicherung weicht von der Geraete-Sicherung ab ($f)"
+    t_same "$SD_BACKUP_DIR/$f" "$BACKUP_DIR/$f" || discard_incomplete_backup "SD-Sicherung weicht von der Geraete-Sicherung ab ($f)"
 done
 echo "Sicherungen angelegt und geprueft: $BACKUP_DIR und $SD_BACKUP_DIR"
 echo "  Backups created and verified: $BACKUP_DIR and $SD_BACKUP_DIR"
@@ -290,8 +325,8 @@ copy_checked "$SELF_DIR/patched/etc/procman_core.cfg" "$ETC_DIR/procman_core.cfg
 rm -f "${HMI_NEW:?}"
 
 echo "$TARGET_TRAIN beta" > "$MARKER" || rollback
-sync
-command -v MountPathSync >/dev/null 2>&1 && MountPathSync "$APP_ROOT"
+t_sync
+t_have MountPathSync && MountPathSync "$APP_ROOT"
 
 echo
 echo "Wenn etwas schiefgeht: Logs und Sicherungen aufheben und melden! / If anything goes wrong: keep and report the logs and backups!"

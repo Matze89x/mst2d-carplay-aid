@@ -53,3 +53,19 @@ test('installer checks the SD card first and backs up twice; uninstaller removes
   assert.doesNotMatch(install, /rm\s+-rf/);
   assert.doesNotMatch(uninstall, /rm\s+-rf/);
 });
+
+test('installer scripts call only the programs the radio is known to have; the rest goes through tools.sh', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  // Erster Test im Radio: dirname, cksum, id, tail, uptime, expr fehlen beim Start / first test in a radio: these are missing at boot
+  const banned = /(^|[\s(|;`$])(dirname|basename|cksum|tail|head|cut|awk|expr|id|uptime|wc|tr|cmp|diff|touch|sed|sha256sum)(\s|$)/;
+  for (const name of ['install.sh', 'uninstall.sh']) {
+    const lines = fs.readFileSync(path.join(__dirname, '..', 'installer', name), 'utf8').split('\n');
+    lines.forEach((line, index) => {
+      const code = line.trim();
+      if (code.startsWith('#') || /^\s*(echo|fail)\b/.test(code) || /"[^"]*\b(cmp|diff|sha256sum|cksum)\b[^"]*"/.test(code)) return;
+      assert.doesNotMatch(code, banned, `${name}:${index + 1} calls a program the radio may not have: ${code}`);
+    });
+    assert.match(lines.join('\n'), /\. "\$SELF_DIR\/tools\.sh"/);
+  }
+});

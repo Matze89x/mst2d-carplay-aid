@@ -165,6 +165,7 @@ function build({ target, firmwareRoot, stdf, nativeDir, hmiJar, output }) {
     add('stage.conf', stageConf(target));
     add('install.sh', fs.readFileSync(path.join(__dirname, '..', 'installer', 'install.sh')), 0o755);
     add('uninstall.sh', fs.readFileSync(path.join(__dirname, '..', 'installer', 'uninstall.sh')), 0o755);
+    add('tools.sh', fs.readFileSync(path.join(__dirname, '..', 'installer', 'tools.sh')), 0o644);
     const manifest = {
       schemaVersion: 1, target: target.id, installDirectory: INSTALL,
       stockInputs: [...Object.values(INPUTS).map((relative) => expected(target, relative)), target.systemImages.stdf, target.systemImages.stdf.procmanCore],

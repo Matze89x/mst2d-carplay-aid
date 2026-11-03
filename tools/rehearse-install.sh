@@ -16,10 +16,30 @@
 set -u
 STAGE="${1:?stage-dir}"; STOCK="${2:?stock apps.tmp}"; PROCMAN="${3:?procman_core.cfg}"; COMMUNITY="${4:-}"; RODIR="${5:-}"
 SHELLS="${SHELLS:-mksh dash}"
+# LIMITED=1: das Radio hat beim Start nur wenige Programme (Erkenntnis aus dem ersten Test im Radio). Alle Laeufe bekommen einen
+# PATH, der NUR die zwingend benoetigten Programme enthaelt, und tools.sh haengt keine weiteren Ordner an.
+# LIMITED=1: the radio has very few programs at boot (finding of the first test in a radio). All runs get a PATH that
+# contains ONLY the essential programs, and tools.sh adds no further folders.
+LIMITED="${LIMITED:-0}"
+LIMBIN=/tmp/limbin.$$
+if [ "$LIMITED" = "1" ]; then
+  rm -rf "$LIMBIN"; mkdir -p "$LIMBIN"
+  for t in cp rm mkdir rmdir chmod ls mount grep; do ln -s "$(command -v $t)" "$LIMBIN/$t"; done
+  echo "EINGESCHRAENKTE UMGEBUNG / LIMITED ENVIRONMENT: PATH=$LIMBIN ($(ls "$LIMBIN" | tr '\n' ' '))"
+fi
 FAILS=0
 ok()   { echo "  OK     $*"; }
 bad()  { echo "  FEHLER $*"; FAILS=$((FAILS + 1)); }
 
+lim() {  # lim VAR=WERT... SHELL SKRIPT [ARGS]: im eingeschraenkten Modus mit leerem PATH starten / run with the limited PATH in limited mode
+  if [ "$LIMITED" = "1" ]; then
+    _e=""; while case "$1" in *=*) true;; *) false;; esac; do _e="$_e $1"; shift; done
+    _sh=$(command -v "$1"); shift
+    env -i PATH="$LIMBIN" MST2_NO_EXTRA_PATH=1 $_e "$_sh" "$@"
+  else
+    env "$@"
+  fi
+}
 mock() {  # mock <wurzel>: Nachbau von /extbin/apps und /etc / mock of /extbin/apps and /etc
   R="$1"; rm -rf "$R"; mkdir -p "$R/apps/cfg" "$R/apps/hmi/HMI/config" "$R/etc"
   cp "$STOCK/cfg/iap2.cfg" "$R/apps/cfg/"
@@ -30,12 +50,12 @@ mock() {  # mock <wurzel>: Nachbau von /extbin/apps und /etc / mock of /extbin/a
 snapshot() { ( cd "$1" && find . -type f | sort | xargs sha256sum ) ; }   # STRENG: alles zaehlt / STRICT: everything counts
 run() {  # run <shell> <root> <sd-backup-dir> <args...>
   SH="$1"; R="$2"; SDB="$3"; shift 3
-  APP_ROOT="$R/apps" ETC_DIR="$R/etc" SD_BACKUP_DIR="$SDB" "$SH" "$STAGE/install.sh" "$@" 2>&1
+  lim APP_ROOT="$R/apps" ETC_DIR="$R/etc" SD_BACKUP_DIR="$SDB" "$SH" "$STAGE/install.sh" "$@" 2>&1
 }
 runun() {  # runun <shell> <root> <sd-copy-dir> [<override>]
   SH="$1"; R="$2"; SDC="$3"; OV="${4:-}"
-  if [ -n "$OV" ]; then APP_ROOT="$R/apps" ETC_DIR="$R/etc" SD_BACKUP_DIR="$SDC" BACKUP_DIR_OVERRIDE="$OV" "$SH" "$STAGE/uninstall.sh" 2>&1
-  else APP_ROOT="$R/apps" ETC_DIR="$R/etc" SD_BACKUP_DIR="$SDC" "$SH" "$STAGE/uninstall.sh" 2>&1; fi
+  if [ -n "$OV" ]; then lim APP_ROOT="$R/apps" ETC_DIR="$R/etc" SD_BACKUP_DIR="$SDC" BACKUP_DIR_OVERRIDE="$OV" "$SH" "$STAGE/uninstall.sh" 2>&1
+  else lim APP_ROOT="$R/apps" ETC_DIR="$R/etc" SD_BACKUP_DIR="$SDC" "$SH" "$STAGE/uninstall.sh" 2>&1; fi
 }
 sdbackup_ok() {  # <dir> <wurzel>: alle vier Originale auf der SD-Karte, byteidentisch zum Auslieferungszustand
   D="$1"; ST="$2"; good=1
@@ -93,7 +113,7 @@ for SH in $SHELLS; do
   echo "[6] fehlende Nutzlast: Rueckrollen stellt Originale her, beide Sicherungen bleiben / missing payload: rollback restores, backups stay"
   mock "$W/c"; snapshot "$W/c" > "$W/c.before"
   cp -R "$STAGE" "$W/stage-broken"; rm -f "$W/stage-broken/payload/libmst2_eu_airplay.so"
-  OUT=$(APP_ROOT="$W/c/apps" ETC_DIR="$W/c/etc" SD_BACKUP_DIR="$W/sd/b4" "$SH" "$W/stage-broken/install.sh" 2>&1); echo "$OUT" | tail -3
+  OUT=$(lim APP_ROOT="$W/c/apps" ETC_DIR="$W/c/etc" SD_BACKUP_DIR="$W/sd/b4" "$SH" "$W/stage-broken/install.sh" 2>&1); echo "$OUT" | tail -3
   echo "$OUT" | grep -q "wiederhergestellt" && ok "Rueckrollen gemeldet" || bad "kein Rueckrollen"
   [ -f "$W/c/apps/mst2-eu-carplay-maps-backup/iap2.cfg" ] && [ -f "$W/sd/b4/iap2.cfg" ] && ok "beide Sicherungen bleiben nach dem Rueckrollen erhalten" || bad "Sicherungen weg"
   rm -rf "$W/c/apps/mst2-eu-carplay-maps-backup" "$W/c/apps/mst2-eu-carplay-maps"
@@ -127,6 +147,7 @@ for SH in $SHELLS; do
   fi
   rm -rf "$W"
 done
+rm -rf "$LIMBIN"
 echo
 if [ "$FAILS" = "0" ]; then echo "=== ALLE PROBEN BESTANDEN / ALL REHEARSALS PASSED"; exit 0; fi
 echo "=== $FAILS FEHLER / FAILURES"; exit 1
