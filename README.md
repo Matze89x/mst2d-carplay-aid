@@ -10,7 +10,7 @@
 >
 > **Und nur mit dem Kombi der 1. Generation (Active Info Display, AID 1):** 12,3 Zoll, 1440×540 Pixel, verbaut von Produktionsstart 2016
 > bis Kalenderwoche 47/2018. **Nicht geeignet** ist das **AID 2 / „Digital Cockpit Pro"** (10,25 Zoll, 1280×480 Pixel, ab Kalenderwoche
-> 48/2018 und im Facelift ab 2020). Der Installer kann die Kombi-Generation nicht prüfen – das musst du selbst sicherstellen.
+> 48/2018 und im Facelift ab 2020). **Ebenfalls nicht geeignet:** das Zwischenmodell **3G0 920 790 E** (ab 2020, kam zwischen AID 1 und AID 2 heraus; Angabe des Projekteigners). Der Installer kann die Kombi-Generation nicht prüfen – das musst du selbst sicherstellen.
 >
 > **Vorgesehene Hardware** (Teilenummern, Angabe des Projekteigners): Radio **3Q0 035 864** (ohne Index-Buchstabe oder A, B, C;
 > Delphi-MST2, Softwarestand `MST2_EU_VW_P0879D`) und Kombi **AID 1: 5NA 920 791** (ohne Index-Buchstabe oder A, B). Die Index-Buchstaben
@@ -48,7 +48,7 @@ Es gibt **genau ein** Ziel. Der Installer akzeptiert nur ein Gerät, dessen Date
 |---|---|---|---|---|---|
 | `MST2_EU_VW_P0879D` | 0879 | `STD2Nav_EU_VW` | **nur AID 1:** 12,3″, 1440×540 | 1010×376 (siehe unten) | gebaut und im Container geprobt, am Fahrzeug **nicht** erprobt |
 
-Nicht geeignet: **Kombi der 2. Generation (AID 2)**, alle anderen Züge (auch andere EU-Züge), US-/NAR-Geräte, Geräte ohne Navigation, TechniSat/Preh-Geräte (Zug endet auf `T`).
+Nicht geeignet: **Kombi der 2. Generation (AID 2)**, das **Zwischenmodell 3G0 920 790 E (ab 2020)**, alle anderen Züge (auch andere EU-Züge), US-/NAR-Geräte, Geräte ohne Navigation, TechniSat/Preh-Geräte (Zug endet auf `T`).
 
 Vorgesehene Hardware (Teilenummern, Angabe des Projekteigners – nicht aus der Firmware ableitbar und vom Installer nicht prüfbar; Index-Buchstaben: Annahme des Projekteigners, nicht geprüft):
 
@@ -225,7 +225,7 @@ Inhabern. Dies ist ein unabhängiges Gemeinschaftsprojekt.
 >
 > **And only with the first-generation cluster (Active Info Display, AID 1):** 12.3 inch, 1440×540 pixels, fitted from the start of
 > production in 2016 up to calendar week 47/2018. **Not suitable** is the **AID 2 / "Digital Cockpit Pro"** (10.25 inch, 1280×480
-> pixels, from calendar week 48/2018 and in the facelift from 2020). The installer cannot check the cluster generation – you must make sure yourself.
+> pixels, from calendar week 48/2018 and in the facelift from 2020). **Also not suitable:** the intermediate model **3G0 920 790 E** (from 2020, released between AID 1 and AID 2; statement of the project owner). The installer cannot check the cluster generation – you must make sure yourself.
 >
 > **Intended hardware** (part numbers, statement of the project owner): radio **3Q0 035 864** (no index letter, or A, B, C;
 > Delphi MST2, software stage `MST2_EU_VW_P0879D`) and cluster **AID 1: 5NA 920 791** (no index letter, or A, B). The index letters are an
@@ -262,7 +262,7 @@ There is **exactly one** target. The installer accepts only a unit whose files m
 |---|---|---|---|---|---|
 | `MST2_EU_VW_P0879D` | 0879 | `STD2Nav_EU_VW` | **AID 1 only:** 12.3″, 1440×540 | 1010×376 (see below) | built and rehearsed in a container, **not** tested in a vehicle |
 
-Not suitable: **second-generation cluster (AID 2)**, all other trains (including other EU trains), US/NAR units, units without navigation, TechniSat/Preh units (train ends in `T`).
+Not suitable: **second-generation cluster (AID 2)**, the **intermediate model 3G0 920 790 E (from 2020)**, all other trains (including other EU trains), US/NAR units, units without navigation, TechniSat/Preh units (train ends in `T`).
 
 Intended hardware (part numbers, statement of the project owner – not derivable from the firmware and not checkable by the installer; index letters: assumption of the project owner, not verified):
 

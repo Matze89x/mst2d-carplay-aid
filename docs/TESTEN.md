@@ -12,7 +12,7 @@ Wir freuen uns über **freiwillige Tester mit genau diesem Gerät**. Ohne Tests 
 
 1. Gerät mit Zug **exakt** `MST2_EU_VW_P0879D` und MU `0879` (Versionsanzeige prüfen). Andere Züge – auch andere EU-Züge –
    werden vom Installer abgelehnt. **Zusätzlich muss das Kombi ein Active Info Display der 1. Generation (AID 1) sein**: 12,3 Zoll, 1440×540 Pixel, verbaut bis Kalenderwoche 47/2018.
-   **Nicht geeignet:** AID 2 / „Digital Cockpit Pro" (10,25 Zoll, 1280×480, ab Kalenderwoche 48/2018 und Facelift). Das kann der Installer nicht prüfen.
+   **Nicht geeignet:** AID 2 / „Digital Cockpit Pro" (10,25 Zoll, 1280×480, ab Kalenderwoche 48/2018 und Facelift) **und das Zwischenmodell 3G0 920 790 E** (ab 2020, zwischen AID 1 und AID 2; Angabe des Projekteigners). Das kann der Installer nicht prüfen.
    Vorgesehen sind das Radio mit der Teilenummer **3Q0 035 864** (ohne Index-Buchstabe oder A, B, C) und das Kombi **AID 1 5NA 920 791** (ohne Index-Buchstabe oder A, B); die Index-Buchstaben sind eine Annahme des Projekteigners und nicht geprüft – bitte deine in der Meldung angeben.
 2. **Bereits funktionierender Root-Zugang** (serielle Konsole oder Telnet) und ein **vorher erprobter Wiederherstellungsweg**.
    Dieses Projekt liefert weder Freischaltung noch Firmware.
@@ -61,7 +61,7 @@ We welcome **volunteer testers with exactly this unit**. Without tests in a vehi
 
 1. A unit with the train **exactly** `MST2_EU_VW_P0879D` and MU `0879` (check the version screen). Other trains – including
    other EU trains – are refused by the installer. **In addition the cluster must be a first-generation Active Info Display (AID 1)**: 12.3 inch, 1440×540 pixels, fitted up to calendar week 47/2018.
-   **Not suitable:** AID 2 / "Digital Cockpit Pro" (10.25 inch, 1280×480, from calendar week 48/2018 and facelift). The installer cannot check this.
+   **Not suitable:** AID 2 / "Digital Cockpit Pro" (10.25 inch, 1280×480, from calendar week 48/2018 and facelift) **and the intermediate model 3G0 920 790 E** (from 2020, between AID 1 and AID 2; statement of the project owner). The installer cannot check this.
    Intended are the radio with part number **3Q0 035 864** (no index letter, or A, B, C) and the cluster **AID 1 5NA 920 791** (no index letter, or A, B); the index letters are an assumption of the project owner and not verified – please state yours in the report.
 2. An **already working root shell** (serial console or Telnet) and a **recovery method you tried beforehand**. This project
    provides neither an unlock nor firmware.

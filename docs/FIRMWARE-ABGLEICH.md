@@ -85,7 +85,7 @@ Die Abweichung ist nicht geklärt und für den Abgleich ohne Folgen (alle Hashes
 
 Die Firmwaredateien verraten nicht, ob ein Kombi der 1. Generation (AID 1; 12,3 Zoll, 1440×540; bis Kalenderwoche 47/2018) oder der 2.
 Generation (AID 2; 10,25 Zoll, 1280×480; ab Kalenderwoche 48/2018) angeschlossen ist; dasselbe Radio kann an beiden laufen. Dieses Projekt ist
-nur für **AID 1** gedacht (Angabe des Projekteigners). Der `NavigationServer` fragt eine „cluster coding"-Zahl ab (Standardwert der Firmware
+nur für **AID 1** gedacht (Angabe des Projekteigners); auch das Zwischenmodell **3G0 920 790 E** (ab 2020) ist nicht geeignet. Der `NavigationServer` fragt eine „cluster coding"-Zahl ab (Standardwert der Firmware
 bei Unbekanntem: „800er FPK"); sie kann im System-Log erscheinen und wäre eine Gegenprüfung, ist aber nicht ausgewertet.
 
 **Teilenummern:** Die vorgesehene Hardware (Radio `3Q0 035 864` ohne Index oder A/B/C, Kombi AID 1 `5NA 920 791` ohne Index oder A/B; Angabe des Projekteigners) kommt in den
@@ -192,7 +192,7 @@ The discrepancy is unexplained and without consequence for the comparison (all h
 
 The firmware files do not reveal whether a first-generation cluster (AID 1; 12.3 inch, 1440×540; up to calendar week 47/2018) or a
 second-generation cluster (AID 2; 10.25 inch, 1280×480; from calendar week 48/2018) is connected; the same radio runs with both. This project
-is intended for **AID 1** only (statement of the project owner). `NavigationServer` queries a "cluster coding" number (firmware default when
+is intended for **AID 1** only (statement of the project owner); the intermediate model **3G0 920 790 E** (from 2020) is not suitable either. `NavigationServer` queries a "cluster coding" number (firmware default when
 unknown: "800er FPK"); it may appear in the system log and would be a cross-check, but it has not been evaluated.
 
 **Part numbers:** the intended hardware (radio `3Q0 035 864` no index or A/B/C, cluster AID 1 `5NA 920 791` no index or A/B; statement of the project owner) does not

@@ -20,7 +20,7 @@ Ausgangspunkt ist das Original `tehfalcon-vw/mst2-nar-carplay-maps` (Version 0.1
   **Unterstützung für US-Geräte gibt es hier nicht mehr.**
 - `tools/verify-target.cjs` akzeptiert nur noch Ziele der Region `EU`; `tools/build-iap2-config.cjs` prüft gegen das EU-Ziel.
 - **Kombi:** nur Active Info Display der 1. Generation (AID 1; 12,3 Zoll, 1440×540 Pixel; Produktion bis Kalenderwoche 47/2018).
-  **Nicht geeignet:** AID 2 / „Digital Cockpit Pro" (10,25 Zoll, 1280×480; ab Kalenderwoche 48/2018 und Facelift). Neu in der
+  **Nicht geeignet:** AID 2 / „Digital Cockpit Pro" (10,25 Zoll, 1280×480; ab Kalenderwoche 48/2018 und Facelift) und das **Zwischenmodell 3G0 920 790 E** (ab 2020, Angabe des Projekteigners). Neu in der
   Zielbeschreibung (`cluster`), im README, in `TESTEN.md` und in der Installer-Meldung; der Installer kann es nicht prüfen.
 - **Vorgesehene Hardware:** Radio **3Q0 035 864** (ohne Index-Buchstabe oder A, B, C; Delphi-MST2, Softwarestand `MST2_EU_VW_P0879D`) und Kombi
   **AID 1: 5NA 920 791** (ohne Index-Buchstabe oder A, B); Angabe und Annahme des Projekteigners, nicht geprüft. Das Original nennt nur Zug und Variante, keine Teilenummern. Neu in der
@@ -154,7 +154,7 @@ earlier development stays unchanged in the git history.
   **There is no support for US units here any more.**
 - `tools/verify-target.cjs` accepts only targets of region `EU`; `tools/build-iap2-config.cjs` checks against the EU target.
 - **Cluster:** only the first-generation Active Info Display (AID 1; 12.3 inch, 1440×540 pixels; production up to calendar week
-  47/2018). **Not suitable:** AID 2 / "Digital Cockpit Pro" (10.25 inch, 1280×480; from calendar week 48/2018 and facelift). New in the
+  47/2018). **Not suitable:** AID 2 / "Digital Cockpit Pro" (10.25 inch, 1280×480; from calendar week 48/2018 and facelift) and the **intermediate model 3G0 920 790 E** (from 2020, statement of the project owner). New in the
   target description (`cluster`), in the README, in `TESTEN.md` and in the installer message; the installer cannot check it.
 - **Intended hardware:** radio **3Q0 035 864** (no index letter, or A, B, C; Delphi MST2, software stage `MST2_EU_VW_P0879D`) and cluster
   **AID 1: 5NA 920 791** (no index letter, or A, B); statement and assumption of the project owner, not verified. The original names only train and variant, no part numbers. New in the target

@@ -14,6 +14,7 @@
       "panelPixels": "1440x540",
       "fitted": "start of production 2016 to calendar week 47/2018"
     },
+    "notSuitableParts": ["3G0 920 790 E (intermediate model from 2020, between AID 1 and AID 2; statement of the project owner)"],
     "notSuitable": {
       "name": "Active Info Display, 2nd generation (AID 2, Digital Cockpit Pro)",
       "diagonalInch": 10.25,
