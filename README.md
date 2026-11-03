@@ -15,10 +15,10 @@
 > **Vorgesehene Hardware** (Teilenummern, Angabe des Projekteigners): Radio **3Q0 035 864** (ohne Index-Buchstabe oder A, B, C;
 > Delphi-MST2, Softwarestand `MST2_EU_VW_P0879D`) und Kombi **AID 1: 5NA 920 791** (ohne Index-Buchstabe oder A, B). Die Index-Buchstaben
 > sind eine Annahme des Projekteigners; entwickelt wurde mit einem Gerät dieser Teilenummern, welche Indizes im Einzelnen passen, ist nicht geprüft. Der Installer kann Teilenummern nicht prüfen – er erkennt das Gerät
-> nur an den Dateien der Firmware.
+> nur an den Dateien der Firmware. **Von einem Tester gemeldet** (Installation und Start in Ordnung): Radio 3Q0 035 874 C (MU 0879, `H29.319.115_STD2Nav_EU`) mit Kombi 3G0 920 791 B (12,3"-AID).
 
 > [!CAUTION]
-> **Unfertige Beta, am Fahrzeug noch NICHT geprüft.** Das Projekt verändert Startdateien des Infotainment-Geräts und kann eine
+> **Unfertige Beta.** Bisher auf **einem** echten Fahrzeug installiert (das Radio startet danach normal); **CarPlay-Funktion, Deinstallation am echten Gerät und Langfahrten sind noch NICHT geprüft.** Das Projekt verändert Startdateien des Infotainment-Geräts und kann eine
 > Boot-Schleife auslösen. Nur mit stabiler Stromversorgung, funktionierendem Root-Zugang (serielle Konsole oder Telnet),
 > geprüften Sicherungen und einem Wiederherstellungsweg ausprobieren. Nutzung auf eigene Gefahr, nur für den privaten Gebrauch.
 > **Wenn etwas schiefgeht, brauchen wir unbedingt die Protokolle (Logs)!** Bitte nichts löschen und nichts aufräumen: den kompletten
@@ -86,8 +86,9 @@ Geprüft (ohne Fahrzeug):
   (Originale byteidentisch zurück, nichts bleibt auf dem Gerät), Ablehnung abweichender Dateien, Zurückrollen bei Fehlern,
   Erhalt einer Community-Variante von `runHMI.sh` (NavIgnore).
 
-Nicht geprüft: **alles am echten Gerät** – Start, CarPlay-Verbindung, Routenführung im Kombi, Kartenvideo, Rückfall auf die
-Werkskarte, Zündungswechsel.
+Am Fahrzeug geprüft (ein Tester): Installation mit Sicherungen auf Radio und SD-Karte, das Radio startet danach normal.
+Nicht geprüft: CarPlay-Verbindung, Routenführung im Kombi, Kartenvideo, Rückfall auf die Werkskarte, Deinstallation am echten Gerät,
+Zündungswechsel, Langfahrten.
 
 ## Aufbau
 
@@ -229,10 +230,10 @@ Inhabern. Dies ist ein unabhängiges Gemeinschaftsprojekt.
 >
 > **Intended hardware** (part numbers, statement of the project owner): radio **3Q0 035 864** (no index letter, or A, B, C;
 > Delphi MST2, software stage `MST2_EU_VW_P0879D`) and cluster **AID 1: 5NA 920 791** (no index letter, or A, B). The index letters are an
-> assumption of the project owner; it was developed with a unit of these part numbers, which indices fit is not verified. The installer cannot check part numbers – it recognises the unit only by the firmware files.
+> assumption of the project owner; it was developed with a unit of these part numbers, which indices fit is not verified. The installer cannot check part numbers – it recognises the unit only by the firmware files. **Reported by a tester** (installation and boot OK): radio 3Q0 035 874 C (MU 0879, `H29.319.115_STD2Nav_EU`) with cluster 3G0 920 791 B (12.3" AID).
 
 > [!CAUTION]
-> **Unfinished beta, NOT yet verified in a vehicle.** This project modifies startup files of the infotainment unit and can cause a
+> **Unfinished beta.** So far installed on **one** real vehicle (the radio starts normally afterwards); **CarPlay function, uninstall on a real unit and long drives are NOT yet verified.** This project modifies startup files of the infotainment unit and can cause a
 > boot loop. Try it only with stable power, a working root shell (serial console or Telnet), verified backups and a recovery
 > method. Use at your own risk, for private use only.
 > **If anything goes wrong we absolutely need the logs!** Please do not delete or tidy up anything: save the complete log folder on the SD card
@@ -299,8 +300,9 @@ Verified (without a vehicle):
   backup (unit and SD card), abort when the SD card is not writable, uninstall (originals restored byte for byte, nothing
   stays on the unit), refusal of modified files, rollback on errors, preservation of a community variant of `runHMI.sh` (NavIgnore).
 
-Not verified: **everything on a real unit** – boot, CarPlay connection, guidance in the cluster, map video, fallback to the
-factory map, ignition cycles.
+Verified in a vehicle (one tester): installation with backups on the radio and the SD card, the radio starts normally afterwards.
+Not verified: CarPlay connection, guidance in the cluster, map video, fallback to the factory map, uninstall on a real unit,
+ignition cycles, long drives.
 
 ## Architecture
 

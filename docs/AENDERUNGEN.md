@@ -5,7 +5,7 @@
 > **Dieses Repository ist ausschließlich für den EU-Markt und das Gerät `MST2_EU_VW_P0879D` bestimmt.**
 > Es ist **nicht** für Nordamerika (US/NAR) und nicht für andere Geräte gedacht. Für das US-Gerät `MST2_US_VW_P0867D` bitte das
 > Original-Repository verwenden: <https://github.com/tehfalcon-vw/mst2-nar-carplay-maps>.
-> **Alles hier ist noch nicht am Fahrzeug geprüft** (siehe unten und [`TESTEN.md`](TESTEN.md)).
+> **Bisher nur Installation und Start auf einem Fahrzeug geprüft, alles andere noch nicht** (siehe unten und [`TESTEN.md`](TESTEN.md)).
 
 Ausgangspunkt ist das Original `tehfalcon-vw/mst2-nar-carplay-maps` (Version 0.1.0-beta.1, MIT-Lizenz), das auf
 `cartellone99/delphi-carplay-cluster-bridge` (MIT) aufbaut. Die Lizenz- und Herkunftshinweise bleiben in `LICENSE` und
@@ -81,6 +81,7 @@ Hooks stimmen mit der EU-Firmware überein.
   (PATH und Inhalt der Programmordner des Radios). Die Proben laufen jetzt auch in einer eingeschränkten Umgebung (`LIMITED=1`).
 - **Beta 3:** Der zweite Test im Radio zeigte die echte Programmliste (u. a. **kein `rmdir`**, `cmp`, `wc`, `head`, `tail`, `sha256sum`; vorhanden `awk`, `touch`, `date`, `sync`, `mv`, `cat`).
   `rmdir` ist nicht mehr zwingend (Ersatz: `rm -r`, nur bei leerem Ordner). Proben jetzt mit genau dieser Liste (`LIMITED=1`) und mit nur den sieben zwingenden Programmen (`LIMITED=2`).
+- **Beta 4:** Das SD-Paket enthält nur noch die Ordner `install` und `uninstall` (die Prüfung läuft als Schritt 1 der Installation und bricht vor jeder Änderung ab); eine Anleitung in Englisch. Die Kennung eines Laufs hängt jetzt auch von Laufnummer und Aktion ab (der Zufallsstand des Radios ist beim Start immer gleich).
 
 ## 6. Tests
 
@@ -118,8 +119,9 @@ Verhalten des HMI-Bündels, `LICENSE` und `NOTICE`.
 Geprüft (ohne Fahrzeug): Host- und Protokolltests, ARM-Bau und -Prüfung, Übersetzung des HMI-Bündels gegen das EU-`MIBHMI`,
 Firmware-Abgleich (siehe oben), Installer-Probelauf auf einem Nachbau (Prüfmodus, Installation, doppelte Sicherung, nicht
 beschreibbare SD-Karte, Rückrollen, Deinstallation, Erhalt der Community-Variante).
-**Nicht geprüft:** alles am echten Gerät (Start, CarPlay-Verbindung, Führung im Kombi, Kartenvideo, Rückfall auf die
-Werkskarte, Zündungswechsel). Auch das Original ist nach Angabe seines Autors am Fahrzeug nicht erprobt.
+**Am Fahrzeug geprüft (ein Tester, 2026-11-03):** Installation mit Sicherungen auf Radio und SD-Karte; das Radio startet danach normal.
+**Nicht geprüft:** CarPlay-Verbindung, Führung im Kombi, Kartenvideo, Rückfall auf die Werkskarte, Deinstallation am echten Gerät,
+Zündungswechsel, Langfahrten. Auch das Original ist nach Angabe seines Autors am Fahrzeug nicht erprobt.
 **Freiwillige Tester sind willkommen** – bitte [`TESTEN.md`](TESTEN.md) lesen.
 
 ---
@@ -131,7 +133,7 @@ Werkskarte, Zündungswechsel). Auch das Original ist nach Angabe seines Autors a
 > **This repository is intended exclusively for the EU market and the unit `MST2_EU_VW_P0879D`.**
 > It is **not** for North America (US/NAR) and not for any other unit. For the US unit `MST2_US_VW_P0867D` please use the
 > original repository: <https://github.com/tehfalcon-vw/mst2-nar-carplay-maps>.
-> **Everything here is not yet verified in a vehicle** (see below and [`TESTEN.md`](TESTEN.md)).
+> **So far only installation and boot were verified on one vehicle, everything else is not** (see below and [`TESTEN.md`](TESTEN.md)).
 
 The starting point is the original `tehfalcon-vw/mst2-nar-carplay-maps` (version 0.1.0-beta.1, MIT license), which builds on
 `cartellone99/delphi-carplay-cluster-bridge` (MIT). License and attribution notices remain in `LICENSE` and `NOTICE`. The
@@ -205,6 +207,7 @@ All 18 fixed addresses and function prologues of the hooks match the EU firmware
   in a restricted environment (`LIMITED=1`).
 - **Beta 3:** the second test in a radio showed the real program list (among others **no `rmdir`**, `cmp`, `wc`, `head`, `tail`, `sha256sum`; present are `awk`, `touch`, `date`, `sync`, `mv`, `cat`).
   `rmdir` is no longer essential (fallback: `rm -r`, only for an empty folder). Rehearsals now run with exactly this list (`LIMITED=1`) and with only the seven essential programs (`LIMITED=2`).
+- **Beta 4:** the SD package now contains only the folders `install` and `uninstall` (the check runs as step 1 of the installation and aborts before any change); one English guide. The ID of a run now also depends on the run number and the action (the radio's random state is always the same at boot).
 
 ## 6. Tests
 
@@ -234,6 +237,7 @@ of the HMI bundle, `LICENSE` and `NOTICE`.
 Verified (without a vehicle): host and protocol tests, ARM build and verification, compiling the HMI bundle against the EU
 `MIBHMI`, firmware comparison (see above), installer rehearsal on a mock tree (check mode, install, double backup, non-writable
 SD card, rollback, uninstall, preservation of the community variant).
-**Not verified:** everything on a real unit (boot, CarPlay connection, guidance in the cluster, map video, fallback to the
-factory map, ignition cycles). The original, too, is untested in a vehicle according to its author.
+**Verified in a vehicle (one tester, 2026-11-03):** installation with backups on the radio and the SD card; the radio starts normally afterwards.
+**Not verified:** CarPlay connection, guidance in the cluster, map video, fallback to the factory map, uninstall on a real unit,
+ignition cycles, long drives. The original, too, is untested in a vehicle according to its author.
 **Volunteer testers are welcome** – please read [`TESTEN.md`](TESTEN.md).
