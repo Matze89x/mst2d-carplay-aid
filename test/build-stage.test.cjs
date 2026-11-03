@@ -48,7 +48,7 @@ test('installer checks the SD card first and backs up twice; uninstaller removes
   assert.match(install, /sd_writable "\$SD_BACKUP_DIR" \|\| fail/);
   assert.ok(install.indexOf('sd_writable "$SD_BACKUP_DIR" || fail') < install.indexOf('expect_pair "$APP_ROOT/cfg/iap2.cfg"'), 'SD check comes before any inspection');
   assert.match(install, /sd_copy "\$ETC_DIR\/procman_core\.cfg" procman_core\.cfg/);
-  assert.match(uninstall, /rmdir "\$MMI_BACKUP_DIR"/);
+  assert.match(uninstall, /t_rmdir "\$MMI_BACKUP_DIR"/);
   assert.match(uninstall, /nichts von diesem Projekt zurueckgeblieben/);
   assert.doesNotMatch(install, /rm\s+-rf/);
   assert.doesNotMatch(uninstall, /rm\s+-rf/);
@@ -58,7 +58,7 @@ test('installer scripts call only the programs the radio is known to have; the r
   const fs = require('node:fs');
   const path = require('node:path');
   // Erster Test im Radio: dirname, cksum, id, tail, uptime, expr fehlen beim Start / first test in a radio: these are missing at boot
-  const banned = /(^|[\s(|;`$])(dirname|basename|cksum|tail|head|cut|awk|expr|id|uptime|wc|tr|cmp|diff|touch|sed|sha256sum)(\s|$)/;
+  const banned = /(^|[\s(|;`$])(dirname|basename|cksum|tail|head|cut|awk|expr|id|uptime|wc|tr|cmp|diff|touch|sed|sha256sum|rmdir)(\s|$)/;
   for (const name of ['install.sh', 'uninstall.sh']) {
     const lines = fs.readFileSync(path.join(__dirname, '..', 'installer', name), 'utf8').split('\n');
     lines.forEach((line, index) => {

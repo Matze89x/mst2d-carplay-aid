@@ -17,8 +17,8 @@
 # MST2_NO_EXTRA_PATH=1 haengt keine Radio-Ordner an PATH.
 
 T_LOADED=1
-T_ESSENTIAL="cp rm mkdir rmdir chmod ls mount grep"
-T_OPTIONAL="cmp diff wc head tail cut tr awk id dirname touch sha256sum cksum date uptime sync mv expr sleep cat"
+T_ESSENTIAL="cp rm mkdir chmod ls mount grep"
+T_OPTIONAL="rmdir cmp diff wc head tail cut tr awk id dirname touch sha256sum cksum date uptime sync mv expr sleep cat"
 
 # PATH wie das Boot-Skript des Radios (/etc/rc) plus die ueblichen Ordner / PATH like the radio's boot script plus the usual folders
 if [ "${MST2_NO_EXTRA_PATH:-0}" != "1" ]; then
@@ -55,10 +55,13 @@ for _t in $T_ESSENTIAL $T_OPTIONAL; do
     if t_have "$_t"; then eval "H_$_t=1"; else eval "H_$_t=0"; fi
 done
 
-# Welche Zeile-fuer-Zeile-Ausgabe ist byte-genau? / which line output is byte-exact?
-if [ "`printf '%s' ab 2>/dev/null`" = "ab" ]; then
+# Welche Zeile-fuer-Zeile-Ausgabe ist byte-genau (auch Rueckstriche bleiben unveraendert)? / which line output is byte-exact (backslashes stay unchanged too)?
+_bs='a\nb\tc'
+if [ "${MST2_FORCE_EMIT:-}" != "" ]; then
+    T_EMIT=$MST2_FORCE_EMIT
+elif [ "`printf '%s' "$_bs" 2>/dev/null`" = "$_bs" ]; then
     T_EMIT=printf
-elif [ "`print -r -- ab 2>/dev/null`" = "ab" ]; then
+elif [ "`print -r -- "$_bs" 2>/dev/null`" = "$_bs" ]; then
     T_EMIT=print
 else
     T_EMIT=echo
@@ -70,11 +73,12 @@ t_emit() {  # eine Zeile unveraendert ausgeben (keine Escape-Folgen) / print one
         *) echo "$1" ;;
     esac
 }
-
+T_NONL=$T_EMIT
 t_emit_nonl() {  # wie t_emit, aber ohne Zeilenende / like t_emit but without a line ending
-    case $T_EMIT in
+    case $T_NONL in
         printf) printf '%s' "$1" ;;
         print) print -rn -- "$1" ;;
+        awk) LINE=$1 awk 'BEGIN { printf "%s", ENVIRON["LINE"] }' ;;
         *) echo "$1" ;;
     esac
 }
@@ -206,6 +210,32 @@ t_lsall() {  # alle Eintraege inkl. versteckter (-a ist ueberall vorhanden, -A n
     ls -a "$1" 2>&1
 }
 
+t_rmdir() {  # leeren Ordner entfernen; ohne rmdir: "rm -r", aber NUR wenn der Ordner leer ist / remove an empty folder; without rmdir: "rm -r" ONLY if empty
+    [ -d "$1" ] || return 0
+    if [ "$H_rmdir" = "1" ]; then
+        rmdir "$1" 2>/dev/null
+        return $?
+    fi
+    for _e in "$1"/* "$1"/.[!.]* "$1"/..?*; do
+        [ -e "$_e" ] && return 1
+    done
+    rm -r "${1:?}" 2>/dev/null
+}
+
+# Pruefung des Ausgabeverfahrens ohne Zeilenende (letzte Zeile ohne Zeilenende) mit einer Probedatei / self-test of line output without line ending
+t_selftest_nonl() {
+    _tf=${TMPDIR:-/tmp}/.mst2-nonl.$$
+    for _m in $T_EMIT awk echo; do
+        [ "$_m" = "awk" ] && [ "$H_awk" != "1" ] && continue
+        T_NONL=$_m
+        ( t_emit_nonl "a\\b" > "$_tf" ) 2>/dev/null
+        if [ "$(t_size "$_tf")" = "3" ]; then rm -f "${_tf:?}"; return 0; fi
+    done
+    rm -f "${_tf:?}"
+    T_NONL=echo
+    return 1
+}
+
 # Zufallskennung aus 8 Zeichen 0-9/A-F ohne cksum, expr, uptime; Argument: eine laufende Nummer zum Vermischen.
 # Die Uhr des Radios ist unzuverlaessig, die Kennung muss ohne sie auskommen.
 # Random ID of 8 chars 0-9/A-F without cksum, expr, uptime; argument: a running number to mix in.
@@ -251,7 +281,7 @@ t_report() {
     done
     echo "  optional vorhanden / optional present:${_have:- -}"
     echo "  optional fehlend (Shell-Ersatz) / optional missing (shell fallback):${_miss:- -}"
-    echo "  Ausgabeverfahren / line output: $T_EMIT, Vergleichsverfahren / compare method: $(t_same_method)"
+    echo "  Ausgabeverfahren / line output: $T_EMIT (ohne Zeilenende / without line ending: $T_NONL), Vergleichsverfahren / compare method: $(t_same_method)"
     [ -z "$(t_missing_essential)" ]
 }
 

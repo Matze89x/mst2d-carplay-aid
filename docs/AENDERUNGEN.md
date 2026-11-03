@@ -79,6 +79,8 @@ Hooks stimmen mit der EU-Firmware überein.
   `cmp`, `diff`, SHA-256, `cksum`, zuletzt nur die Größe). Fehlt etwas Zwingendes, bricht der Installer **vor jeder Änderung** mit einer klaren Meldung ab.
   Die Prüfung der Zeilen von `runHMI.sh` ist byte-genau ohne `head`/`tail`. Das SD-Skript schreibt zusätzlich `werkzeuge_<KENNUNG>.txt`
   (PATH und Inhalt der Programmordner des Radios). Die Proben laufen jetzt auch in einer eingeschränkten Umgebung (`LIMITED=1`).
+- **Beta 3:** Der zweite Test im Radio zeigte die echte Programmliste (u. a. **kein `rmdir`**, `cmp`, `wc`, `head`, `tail`, `sha256sum`; vorhanden `awk`, `touch`, `date`, `sync`, `mv`, `cat`).
+  `rmdir` ist nicht mehr zwingend (Ersatz: `rm -r`, nur bei leerem Ordner). Proben jetzt mit genau dieser Liste (`LIMITED=1`) und mit nur den sieben zwingenden Programmen (`LIMITED=2`).
 
 ## 6. Tests
 
@@ -201,6 +203,8 @@ All 18 fixed addresses and function prologues of the hooks match the EU firmware
   If something essential is missing, the installer aborts **before any change** with a clear message. The `runHMI.sh` line edit is byte-exact without
   `head`/`tail`. The SD script additionally writes `werkzeuge_<ID>.txt` (PATH and the contents of the radio's program folders). The rehearsals now also run
   in a restricted environment (`LIMITED=1`).
+- **Beta 3:** the second test in a radio showed the real program list (among others **no `rmdir`**, `cmp`, `wc`, `head`, `tail`, `sha256sum`; present are `awk`, `touch`, `date`, `sync`, `mv`, `cat`).
+  `rmdir` is no longer essential (fallback: `rm -r`, only for an empty folder). Rehearsals now run with exactly this list (`LIMITED=1`) and with only the seven essential programs (`LIMITED=2`).
 
 ## 6. Tests
 

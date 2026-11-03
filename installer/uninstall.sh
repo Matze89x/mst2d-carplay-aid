@@ -97,11 +97,11 @@ fi
 rm -f "${INSTALL_DIR:?}/libmst2_eu_ipod.so" "${INSTALL_DIR:?}/libmst2_eu_launch.so"
 rm -f "${INSTALL_DIR:?}/libmst2_eu_video_gate.so" "${INSTALL_DIR:?}/libmst2_eu_airplay.so"
 rm -f "${INSTALL_DIR:?}/mst2-eu-rgi-hmi.jar" "${INSTALL_DIR:?}/.installed"
-rmdir "$INSTALL_DIR" 2>/dev/null
+t_rmdir "$INSTALL_DIR"
 for f in $BACKUP_FILES runHMI.variant; do
     rm -f "${MMI_BACKUP_DIR:?}/${f:?}"
 done
-rmdir "$MMI_BACKUP_DIR" 2>/dev/null
+t_rmdir "$MMI_BACKUP_DIR"
 t_sync
 t_have MountPathSync && MountPathSync "$APP_ROOT"
 

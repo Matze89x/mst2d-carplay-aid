@@ -101,14 +101,14 @@ remove_sd_partial() {
     for f in $BACKUP_FILES runHMI.variant MANIFEST.txt LIESMICH.txt; do
         rm -f "${SD_BACKUP_DIR:?}/${f:?}"
     done
-    rmdir "$SD_BACKUP_DIR" 2>/dev/null
+    t_rmdir "$SD_BACKUP_DIR"
 }
 
 discard_incomplete_backup() {
     for f in $BACKUP_FILES runHMI.variant; do
         rm -f "${BACKUP_DIR:?}/${f:?}"
     done
-    rmdir "$BACKUP_DIR" 2>/dev/null
+    t_rmdir "$BACKUP_DIR"
     remove_sd_partial
     fail "$1; es wurde keine Live-Datei geaendert" "$1; no live files were changed"
 }
@@ -148,6 +148,7 @@ patch_hmi() {
     # pure shell version (no head/tail/cut on the radio): reads line by line, changes only the first
     # BOOTCLASSPATH line; the total size is checked against the expected value afterwards
     PH_DONE=0
+    t_selftest_nonl
     : > "$2" || return 1
     while :; do
         if IFS= read -r PH_LINE; then

@@ -22,9 +22,12 @@ SHELLS="${SHELLS:-mksh dash}"
 # contains ONLY the essential programs, and tools.sh adds no further folders.
 LIMITED="${LIMITED:-0}"
 LIMBIN=/tmp/limbin.$$
-if [ "$LIMITED" = "1" ]; then
+if [ "$LIMITED" != "0" ]; then
   rm -rf "$LIMBIN"; mkdir -p "$LIMBIN"
-  for t in cp rm mkdir rmdir chmod ls mount grep; do ln -s "$(command -v $t)" "$LIMBIN/$t"; done
+  # LIMITED=1: genau die Programme, die das echte Radio beim Start hat (gemessen im zweiten Test); LIMITED=2: nur die zwingenden
+  # LIMITED=1: exactly the programs the real radio has at boot (measured in the second test); LIMITED=2: only the essential ones
+  if [ "$LIMITED" = "2" ]; then SET="cp rm mkdir chmod ls mount grep"; else SET="cp rm mkdir chmod ls mount grep awk touch date sync mv sleep cat ln uname find df pwd env"; fi
+  for t in $SET; do ln -s "$(command -v $t)" "$LIMBIN/$t"; done
   echo "EINGESCHRAENKTE UMGEBUNG / LIMITED ENVIRONMENT: PATH=$LIMBIN ($(ls "$LIMBIN" | tr '\n' ' '))"
 fi
 FAILS=0
@@ -32,10 +35,10 @@ ok()   { echo "  OK     $*"; }
 bad()  { echo "  FEHLER $*"; FAILS=$((FAILS + 1)); }
 
 lim() {  # lim VAR=WERT... SHELL SKRIPT [ARGS]: im eingeschraenkten Modus mit leerem PATH starten / run with the limited PATH in limited mode
-  if [ "$LIMITED" = "1" ]; then
+  if [ "$LIMITED" != "0" ]; then
     _e=""; while case "$1" in *=*) true;; *) false;; esac; do _e="$_e $1"; shift; done
     _sh=$(command -v "$1"); shift
-    env -i PATH="$LIMBIN" MST2_NO_EXTRA_PATH=1 $_e "$_sh" "$@"
+    env -i PATH="$LIMBIN" MST2_NO_EXTRA_PATH=1 MST2_FORCE_EMIT="${MST2_FORCE_EMIT:-}" $_e "$_sh" "$@"
   else
     env "$@"
   fi
