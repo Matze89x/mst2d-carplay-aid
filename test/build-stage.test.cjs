@@ -69,3 +69,22 @@ test('installer scripts call only the programs the radio is known to have; the r
     assert.match(lines.join('\n'), /\. "\$SELF_DIR\/tools\.sh"/);
   }
 });
+
+test('native hooks use the QNX 6.5 dlsym handles and never call an unresolved function', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const src = (name) => fs.readFileSync(path.join(__dirname, '..', 'native', 'delphi-qnx', name), 'utf8');
+  // Das echte QNX-6.5-<dlfcn.h>: RTLD_DEFAULT -2, RTLD_NEXT -3. Die frueheren Werte 0/-1 liessen dlsym NULL liefern und
+  // stuerzten den NavigationServer beim Start ab (signal 11, ip 0). / the real QNX 6.5 <dlfcn.h> values
+  const header = src('include/dcc_qnx.h');
+  assert.match(header, /#define RTLD_DEFAULT \(\(void \*\)-2\)/);
+  assert.match(header, /#define RTLD_NEXT \(\(void \*\)-3\)/);
+  const gate = src('src/video_gate.c');
+  for (const call of ['open', 'close', 'write', 'writev']) {
+    assert.match(gate, new RegExp(`if \\(!next\\) return -1;`), `${call} wrapper checks the real function`);
+    assert.doesNotMatch(gate, new RegExp(`dlsym\\(RTLD_NEXT, "${call}"\\)`), `${call}: no unchecked dlsym`);
+  }
+  assert.equal((gate.match(/if \(!next\) return -1;/g) || []).length, 4);
+  assert.match(src('src/launch_hook.c'), /if\(!next\)return -1;/);
+  assert.match(src('src/airplay_hook.c'), /dcc_library_symbol\("libAirPlaySupport\.so"/);
+});

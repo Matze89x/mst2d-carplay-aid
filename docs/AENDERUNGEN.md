@@ -82,6 +82,12 @@ Hooks stimmen mit der EU-Firmware überein.
 - **Beta 3:** Der zweite Test im Radio zeigte die echte Programmliste (u. a. **kein `rmdir`**, `cmp`, `wc`, `head`, `tail`, `sha256sum`; vorhanden `awk`, `touch`, `date`, `sync`, `mv`, `cat`).
   `rmdir` ist nicht mehr zwingend (Ersatz: `rm -r`, nur bei leerem Ordner). Proben jetzt mit genau dieser Liste (`LIMITED=1`) und mit nur den sieben zwingenden Programmen (`LIMITED=2`).
 - **Beta 4:** Das SD-Paket enthält nur noch die Ordner `install` und `uninstall` (die Prüfung läuft als Schritt 1 der Installation und bricht vor jeder Änderung ab); eine Anleitung in Englisch. Die Kennung eines Laufs hängt jetzt auch von Laufnummer und Aktion ab (der Zufallsstand des Radios ist beim Start immer gleich).
+- **Beta 5, Korrektur des Absturzes im NavigationServer:** Der Fahrzeugtest von Beta 4 zeigte beim Start `run fault ... signal 11 ... ip 0 NavigationServer` und den Notfall-Update-Bildschirm beim Anschließen des iPhones.
+  Wahrscheinliche Ursache: `dcc_qnx.h` definierte `RTLD_DEFAULT` als 0 und `RTLD_NEXT` als -1; das echte QNX-6.5-`<dlfcn.h>` hat **-2 und -3**. `dlsym` lieferte dadurch NULL, und `video_gate.c`
+  rief das Ergebnis ohne Prüfung auf (Sprung an Adresse 0). Korrektur: richtige Werte, neue Hilfsfunktionen `include/dcc_resolve.h` (erst `RTLD_NEXT`, dann die benannte Bibliothek `libc.so.3`, bzw. `libAirPlaySupport.so`
+  für `AES_CBCFrame_Init`), **nie** ein NULL-Aufruf (`open`/`close`/`write`/`writev` liefern -1, `spawn` -1). Der Code kommt aus dem Original, dessen Autor ihn nach eigener Angabe nie an einem Delphi-Gerät erprobt hat; die
+  neuen Werte stimmen mit dem Toolchain-Header und mit den am Gerät geprüften Schwesterprojekten überein. **Das ist eine begründete Vermutung, am Fahrzeug nicht bestätigt.** Hinweis: Mit den richtigen Werten
+  laufen die Hooks erstmals tatsächlich; vorher konnten sie ins Leere laufen. Neu ist außerdem eine SD-Karte `logs`, die Systemlog und Absturzdateien sichert, ohne etwas zu ändern.
 
 ## 6. Tests
 
@@ -208,6 +214,12 @@ All 18 fixed addresses and function prologues of the hooks match the EU firmware
 - **Beta 3:** the second test in a radio showed the real program list (among others **no `rmdir`**, `cmp`, `wc`, `head`, `tail`, `sha256sum`; present are `awk`, `touch`, `date`, `sync`, `mv`, `cat`).
   `rmdir` is no longer essential (fallback: `rm -r`, only for an empty folder). Rehearsals now run with exactly this list (`LIMITED=1`) and with only the seven essential programs (`LIMITED=2`).
 - **Beta 4:** the SD package now contains only the folders `install` and `uninstall` (the check runs as step 1 of the installation and aborts before any change); one English guide. The ID of a run now also depends on the run number and the action (the radio's random state is always the same at boot).
+- **Beta 5, fix for the NavigationServer crash:** the vehicle test of beta 4 showed `run fault ... signal 11 ... ip 0 NavigationServer` at startup and the emergency-update screen when connecting the iPhone.
+  Likely cause: `dcc_qnx.h` defined `RTLD_DEFAULT` as 0 and `RTLD_NEXT` as -1; the real QNX 6.5 `<dlfcn.h>` uses **-2 and -3**. `dlsym` therefore returned NULL and `video_gate.c` called the result unchecked
+  (jump to address 0). Fix: the right values, new helpers in `include/dcc_resolve.h` (first `RTLD_NEXT`, then the named library `libc.so.3`, or `libAirPlaySupport.so` for `AES_CBCFrame_Init`), and **never** a NULL call
+  (`open`/`close`/`write`/`writev` return -1, `spawn` returns -1). The code comes from the original, whose author states it was never tried on a Delphi unit; the new values match the toolchain header and the sister projects
+  that were validated on a unit. **This is a reasoned hypothesis, not confirmed in a vehicle.** Note: with the correct values the hooks really run for the first time; before they could run into nothing.
+  A new SD card `logs` saves the system log and crash files without changing anything.
 
 ## 6. Tests
 

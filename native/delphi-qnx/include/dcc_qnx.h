@@ -10,8 +10,9 @@ typedef unsigned pthread_t;
 
 #define RTLD_LAZY 0x0001
 #define RTLD_GLOBAL 0x0100
-#define RTLD_DEFAULT ((void *)0)
-#define RTLD_NEXT ((void *)-1)
+/* Values of the QNX 6.5 <dlfcn.h>. (void *)0 / (void *)-1 were wrong: dlsym returned NULL for them. */
+#define RTLD_DEFAULT ((void *)-2)
+#define RTLD_NEXT ((void *)-3)
 #define O_RDONLY 0x0000
 #define O_WRONLY 0x0001
 #define O_RDWR 0x0002

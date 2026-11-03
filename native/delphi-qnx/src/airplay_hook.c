@@ -1,5 +1,6 @@
 #include "dcc_alt111_ingress.h"
 #include "dcc_qnx.h"
+#include "dcc_resolve.h"
 #include "dcc_runtime_hook.h"
 
 typedef const void *CFTypeRef;
@@ -365,7 +366,9 @@ OSStatus AES_CBCFrame_Init(void *context, const uint8_t *key,
     void *return_address = __builtin_return_address(0);
     OSStatus result;
     if (!stock_cbc_init)
-        stock_cbc_init = (cbc_init_fn)dlsym(RTLD_NEXT, "AES_CBCFrame_Init");
+        stock_cbc_init = (cbc_init_fn)dcc_next_symbol("AES_CBCFrame_Init");
+    if (!stock_cbc_init)   /* the stock function lives in libAirPlaySupport.so */
+        stock_cbc_init = (cbc_init_fn)dcc_library_symbol("libAirPlaySupport.so", "AES_CBCFrame_Init");
     if (!stock_cbc_init) return -1;
     result = stock_cbc_init(context, key, iv, encrypt);
     if (!result && !encrypt && key && exact.session_security_info &&

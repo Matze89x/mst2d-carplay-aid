@@ -18,7 +18,7 @@
 > nur an den Dateien der Firmware. **Von einem Tester gemeldet** (Installation und Start in Ordnung): Radio 3Q0 035 874 C (MU 0879, `H29.319.115_STD2Nav_EU`) mit Kombi 3G0 920 791 B (12,3"-AID).
 
 > [!CAUTION]
-> **Unfertige Beta.** Bisher auf **einem** echten Fahrzeug installiert (das Radio startet danach normal); **CarPlay-Funktion, Deinstallation am echten Gerät und Langfahrten sind noch NICHT geprüft.** Das Projekt verändert Startdateien des Infotainment-Geräts und kann eine
+> **Unfertige Beta.** Erster Test auf **einem** Fahrzeug (Beta 4): Installation und **Deinstallation** liefen sauber, aber mit der installierten Version stürzte das Navigationsprogramm des Radios beim Start ab und beim Anschließen des iPhones erschien der Notfall-Update-Bildschirm (nach Neustart war das Radio wieder normal, Deinstallation stellte alles zurück). **Beta 5 enthält eine Korrektur der wahrscheinlichen Ursache, die am Fahrzeug noch NICHT geprüft ist.** CarPlay-Funktion und Langfahrten sind ungeprüft. Das Projekt verändert Startdateien des Infotainment-Geräts und kann eine
 > Boot-Schleife auslösen. Nur mit stabiler Stromversorgung, funktionierendem Root-Zugang (serielle Konsole oder Telnet),
 > geprüften Sicherungen und einem Wiederherstellungsweg ausprobieren. Nutzung auf eigene Gefahr, nur für den privaten Gebrauch.
 > **Wenn etwas schiefgeht, brauchen wir unbedingt die Protokolle (Logs)!** Bitte nichts löschen und nichts aufräumen: den kompletten
@@ -86,9 +86,8 @@ Geprüft (ohne Fahrzeug):
   (Originale byteidentisch zurück, nichts bleibt auf dem Gerät), Ablehnung abweichender Dateien, Zurückrollen bei Fehlern,
   Erhalt einer Community-Variante von `runHMI.sh` (NavIgnore).
 
-Am Fahrzeug geprüft (ein Tester): Installation mit Sicherungen auf Radio und SD-Karte, das Radio startet danach normal.
-Nicht geprüft: CarPlay-Verbindung, Routenführung im Kombi, Kartenvideo, Rückfall auf die Werkskarte, Deinstallation am echten Gerät,
-Zündungswechsel, Langfahrten.
+Am Fahrzeug geprüft (ein Tester, Beta 4): Installation mit Sicherungen auf Radio und SD-Karte und **Deinstallation** (Originale zurück, nichts bleibt auf dem Gerät). **Fehler gefunden:** Absturz des NavigationServer beim Start (`signal 11, ip 0`), Notfall-Update-Bildschirm beim Anschließen des iPhones.
+Nicht geprüft: die Korrektur in Beta 5, CarPlay-Verbindung, Routenführung im Kombi, Kartenvideo, Rückfall auf die Werkskarte, Zündungswechsel, Langfahrten.
 
 ## Aufbau
 
@@ -233,7 +232,7 @@ Inhabern. Dies ist ein unabhängiges Gemeinschaftsprojekt.
 > assumption of the project owner; it was developed with a unit of these part numbers, which indices fit is not verified. The installer cannot check part numbers – it recognises the unit only by the firmware files. **Reported by a tester** (installation and boot OK): radio 3Q0 035 874 C (MU 0879, `H29.319.115_STD2Nav_EU`) with cluster 3G0 920 791 B (12.3" AID).
 
 > [!CAUTION]
-> **Unfinished beta.** So far installed on **one** real vehicle (the radio starts normally afterwards); **CarPlay function, uninstall on a real unit and long drives are NOT yet verified.** This project modifies startup files of the infotainment unit and can cause a
+> **Unfinished beta.** First test on **one** vehicle (beta 4): installation and **uninstall** ran cleanly, but with the installed version the radio's navigation program crashed at startup and connecting the iPhone showed the emergency-update screen (after a restart the radio was normal again, the uninstall restored everything). **Beta 5 contains a fix for the likely cause, which is NOT yet verified in a vehicle.** CarPlay function and long drives are unverified. This project modifies startup files of the infotainment unit and can cause a
 > boot loop. Try it only with stable power, a working root shell (serial console or Telnet), verified backups and a recovery
 > method. Use at your own risk, for private use only.
 > **If anything goes wrong we absolutely need the logs!** Please do not delete or tidy up anything: save the complete log folder on the SD card
@@ -300,9 +299,8 @@ Verified (without a vehicle):
   backup (unit and SD card), abort when the SD card is not writable, uninstall (originals restored byte for byte, nothing
   stays on the unit), refusal of modified files, rollback on errors, preservation of a community variant of `runHMI.sh` (NavIgnore).
 
-Verified in a vehicle (one tester): installation with backups on the radio and the SD card, the radio starts normally afterwards.
-Not verified: CarPlay connection, guidance in the cluster, map video, fallback to the factory map, uninstall on a real unit,
-ignition cycles, long drives.
+Verified in a vehicle (one tester, beta 4): installation with backups on the radio and the SD card, and **uninstall** (originals restored, nothing left on the unit). **Bug found:** the NavigationServer crashed at startup (`signal 11, ip 0`), emergency-update screen when connecting the iPhone.
+Not verified: the fix in beta 5, CarPlay connection, guidance in the cluster, map video, fallback to the factory map, ignition cycles, long drives.
 
 ## Architecture
 

@@ -1,6 +1,6 @@
 {
   "name": "mst2-eu-carplay-maps",
-  "version": "0.1.0-beta.4",
+  "version": "0.1.0-beta.5",
   "private": true,
   "description": "CarPlay navigation in the instrument cluster for Delphi MST2 - ONLY for MST2_EU_VW_P0879D (EU market), not for US",
   "license": "MIT",

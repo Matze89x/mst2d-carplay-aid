@@ -1,4 +1,5 @@
 #include "dcc_qnx.h"
+#include "dcc_resolve.h"
 
 #define CHILD "/extbin/apps/mst2-eu-carplay-maps/libmst2_eu_ipod.so"
 #define FULL_ENV "LD_PRELOAD=" CHILD
@@ -30,9 +31,18 @@ static int launches_ipod(const char *path,char *const argv[]){
     for(i=0;i<ENV_CAP&&argv[i];i++)if(mm_ipod(argv[i]))return 1;
     return 0;
 }
+/* The real spawn/spawnp: RTLD_NEXT first, then named libc. NULL when neither is found (never called then). */
+static spawn_fn real_spawn,real_spawnp;
+static spawn_fn find_spawn(const char *symbol){
+    int plain=equal(symbol,"spawn");
+    spawn_fn *cache=plain?&real_spawn:&real_spawnp;
+    if(!*cache)*cache=(spawn_fn)dcc_next_symbol(symbol);
+    if(!*cache)*cache=(spawn_fn)dcc_library_symbol("libc.so.3",symbol);
+    return *cache;
+}
 static pid_t invoke(const char *symbol,const char *path,int fd_count,const int *fd_map,
                     const struct inheritance *inherit,char *const argv[],char *const envp[]){
-    spawn_fn next=(spawn_fn)dlsym(RTLD_NEXT,symbol);char *environment[ENV_CAP];char value[VALUE_CAP];
+    spawn_fn next=find_spawn(symbol);char *environment[ENV_CAP];char value[VALUE_CAP];
     unsigned count=0,preload=ENV_CAP,i,used;
     if(!next)return -1;
     if(!launches_ipod(path,argv)||!envp)return next(path,fd_count,fd_map,inherit,argv,envp);

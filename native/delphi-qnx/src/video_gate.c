@@ -1,4 +1,5 @@
 #include "dcc_qnx.h"
+#include "dcc_resolve.h"
 #include "dcc_ts.h"
 #include "dcc_video_slot.h"
 #include <stdarg.h>
@@ -17,6 +18,10 @@ typedef ssize_t (*write_fn)(int, const void *, size_t);
 typedef ssize_t (*writev_fn)(int, const struct iovec *, int);
 
 static volatile int custom_active;
+static open_fn real_open;
+static close_fn real_close;
+static write_fn real_write;
+static writev_fn real_writev;
 static int iso_fds[FD_CAP];
 static uint8_t access_unit[DCC_VIDEO_SLOT_CAPACITY];
 static uint8_t transport_stream[TS_BLOCK_SIZE];
@@ -99,7 +104,6 @@ static const struct dcc_video_slot *map_video_slot(void)
 static void *video_worker(void *unused)
 {
     const struct dcc_video_slot *slot = NULL;
-    write_fn real_write = (write_fn)dlsym(RTLD_NEXT, "write");
     struct dcc_ts_mux mux;
     struct ts_block block;
     uint32_t sequence = 0, flags = 0, stale = 0;
@@ -109,8 +113,9 @@ static void *video_worker(void *unused)
     (void)unused;
     dcc_ts_init(&mux);
     memset(&block, 0, sizeof(block));
-    block.write_call = real_write;
+    if (!real_write) real_write = (write_fn)dcc_next_symbol("write");
     if (!real_write) return NULL;
+    block.write_call = real_write;
     for (;;) {
         int result, fd;
         if (!slot) {
@@ -147,19 +152,36 @@ static void *video_worker(void *unused)
     }
 }
 
+/* The real libc functions. Looked up once at load time, with the named-library fallback; the wrappers below
+ * only retry RTLD_NEXT (no dlopen inside open/close/write) and return -1 when nothing is found, never a NULL call. */
+static void resolve_real(void)
+{
+    if (!real_open) real_open = (open_fn)dcc_next_symbol("open");
+    if (!real_close) real_close = (close_fn)dcc_next_symbol("close");
+    if (!real_write) real_write = (write_fn)dcc_next_symbol("write");
+    if (!real_writev) real_writev = (writev_fn)dcc_next_symbol("writev");
+    if (!real_open) real_open = (open_fn)dcc_library_symbol("libc.so.3", "open");
+    if (!real_close) real_close = (close_fn)dcc_library_symbol("libc.so.3", "close");
+    if (!real_write) real_write = (write_fn)dcc_library_symbol("libc.so.3", "write");
+    if (!real_writev) real_writev = (writev_fn)dcc_library_symbol("libc.so.3", "writev");
+}
+
 void dcc_video_gate_init(void)
 {
     int i;
     pthread_t worker;
     custom_active = 0;
     for (i = 0; i < FD_CAP; ++i) iso_fds[i] = -1;
+    resolve_real();
     if (pthread_create(&worker, NULL, video_worker, NULL) == 0) pthread_detach(worker);
 }
 
 int open(const char *path, int flags, ...)
 {
-    open_fn next = (open_fn)dlsym(RTLD_NEXT, "open");
+    open_fn next = real_open;
     int fd;
+    if (!next) next = real_open = (open_fn)dcc_next_symbol("open");
+    if (!next) return -1;
     if (flags & O_CREAT) {
         va_list ap;
         int mode;
@@ -172,23 +194,29 @@ int open(const char *path, int flags, ...)
 
 int close(int fd)
 {
-    close_fn next = (close_fn)dlsym(RTLD_NEXT, "close");
+    close_fn next = real_close;
+    if (!next) next = real_close = (close_fn)dcc_next_symbol("close");
+    if (!next) return -1;
     forget(fd);
     return next(fd);
 }
 
 ssize_t write(int fd, const void *data, size_t length)
 {
-    write_fn next = (write_fn)dlsym(RTLD_NEXT, "write");
+    write_fn next = real_write;
+    if (!next) next = real_write = (write_fn)dcc_next_symbol("write");
+    if (!next) return -1;
     if (custom_active && tracked(fd)) return (ssize_t)length;
     return next(fd, data, length);
 }
 
 ssize_t writev(int fd, const struct iovec *iov, int count)
 {
-    writev_fn next = (writev_fn)dlsym(RTLD_NEXT, "writev");
+    writev_fn next = real_writev;
     size_t total = 0;
     int i;
+    if (!next) next = real_writev = (writev_fn)dcc_next_symbol("writev");
+    if (!next) return -1;
     if (custom_active && tracked(fd)) {
         if (!iov || count < 0) return next(fd, iov, count);
         for (i = 0; i < count; ++i) total += iov[i].iov_len;
