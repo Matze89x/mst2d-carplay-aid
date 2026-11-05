@@ -9,12 +9,12 @@ Stand: 2026-11-05. Alle Angaben stammen aus Protokollen von Radios, die beim Tes
 | | Test 1 (Beta 4) | Test 2 (Beta 6) |
 |---|---|---|
 | Fahrzeug | Tester, Radio `3Q0 035 874 C`, Kombi `3G0 920 791 B` (Angabe des Testers) | Fahrzeug des Projekteigners |
-| Prüfung (Dateigrößen, Variante `runHMI.sh`) | bestanden | bestanden |
+| Prüfung (Dateigrößen, Variante `runHMI.sh`) | bestanden (Standardvariante) | bestanden (NavIgnore-Variante des Radios) |
 | Installation (Sicherung auf Radio **und** SD-Karte) | grün, Dateien wie erwartet | grün, Dateien wie erwartet |
 | Radio startet danach | ja, **aber** Navigationsprogramm stürzte beim Start ab (`run fault … signal 11 … ip 0`) | ja, **kein** Absturz im Start (ein Lauf) |
 | iPhone per Kabel anschließen | Radio fällt nach kurzer Zeit aus, danach blauer „EMERGENCY UPDATE"-Bildschirm | Radio fällt nach etwa 1,5 Minuten aus, danach blauer „EMERGENCY UPDATE"-Bildschirm |
 | CarPlay / Karte im Kombi | nicht erschienen | nicht erschienen |
-| Deinstallation | grün; Originale byteidentisch zurück (Sicherung auf Radio = Sicherung auf Karte) | nicht durchgeführt |
+| Deinstallation | grün; Originale byteidentisch zurück (Sicherung auf Radio = Sicherung auf Karte) | grün; Nachkontrolle bestanden (alle vier Dateien Original, nichts von diesem Projekt mehr in `/extbin/apps`); die NavIgnore-`runHMI.sh` kam byteidentisch zurück; alles Entfernte lag vorher als Kopie auf der Karte |
 | Radio danach | nach Neustart wieder normal | nach Neustart wieder normal |
 
 ## Was Test 2 im Protokoll zeigt (Dauer-Logger, alle 5 s)
@@ -61,12 +61,12 @@ Status: 2026-11-05. All statements come from logs that the radios wrote to the S
 | | Test 1 (beta 4) | Test 2 (beta 6) |
 |---|---|---|
 | Vehicle | Tester, radio `3Q0 035 874 C`, cluster `3G0 920 791 B` (as reported by the tester) | Vehicle of the project owner |
-| Check (file sizes, `runHMI.sh` variant) | passed | passed |
+| Check (file sizes, `runHMI.sh` variant) | passed (standard variant) | passed (the radio's NavIgnore variant) |
 | Installation (backup on the radio **and** SD card) | green, files as expected | green, files as expected |
 | Radio starts afterwards | yes, **but** the navigation program crashed at startup (`run fault … signal 11 … ip 0`) | yes, **no** crash at startup (one run) |
 | Connect iPhone by cable | the radio drops out after a short time, then the blue "EMERGENCY UPDATE" screen | the radio drops out after about 1.5 minutes, then the blue "EMERGENCY UPDATE" screen |
 | CarPlay / map in the cluster | did not appear | did not appear |
-| Uninstall | green; originals back byte for byte (backup on the radio = backup on the card) | not performed |
+| Uninstall | green; originals back byte for byte (backup on the radio = backup on the card) | green; final check passed (all four files stock, nothing of this project left in `/extbin/apps`); the NavIgnore `runHMI.sh` came back byte for byte; everything removed was copied to the card first |
 | Radio afterwards | normal again after a restart | normal again after a restart |
 
 ## What test 2 shows in the log (permanent logger, every 5 s)
