@@ -220,6 +220,14 @@ All 18 fixed addresses and function prologues of the hooks match the EU firmware
   (`open`/`close`/`write`/`writev` return -1, `spawn` returns -1). The code comes from the original, whose author states it was never tried on a Delphi unit; the new values match the toolchain header and the sister projects
   that were validated on a unit. **This is a reasoned hypothesis, not confirmed in a vehicle.** Note: with the correct values the hooks really run for the first time; before they could run into nothing.
   A new SD card `logs` saves the system log and crash files without changing anything.
+- **Beta 6, Deinstallation robuster:** `uninstall.sh` waehlt fuer jede Originaldatei eine **geprueft gueltige Quelle** (Groesse laut `stage.conf`, SHA-256 wenn vorhanden): 1. die Sicherung von `install.sh`, 2. fuer `runHMI.sh` den
+  **Rueckbau** unseres Jars aus der aktuellen Datei (bewahrt auch eine Community-Variante), 3. optional eine eigene Kopie der Originale in `stock/` neben dem Skript (nur im privaten SD-Paket, nie im Repository). Fehlt fuer eine Datei jede
+  gueltige Quelle, bricht es **vor jeder Aenderung** ab. Danach eine **Nachkontrolle**: alle vier Dateien sind Original und enthalten keinen Verweis auf `mst2-eu`, in `/extbin/apps` liegt nichts von diesem Projekt mehr.
+  `UNINSTALL_MODE=rename` benennt statt zu loeschen. Die SD-Karte `install` installiert nur einmal und protokolliert danach bei jedem Start (Dauer-Logger).
+  Beta 6, more robust uninstall: `uninstall.sh` picks a **verified valid source** for every stock file (size per `stage.conf`, SHA-256 when available): 1. the backup from `install.sh`, 2. for `runHMI.sh` **removing** our jar
+  from the current file (also keeps a community variant), 3. optionally an own copy of the stock files in `stock/` next to the script (private SD package only, never in the repository). If any file has no valid source it aborts
+  **before any change**. Then a **final check**: all four files are stock and contain no reference to `mst2-eu`, and nothing of this project is left in `/extbin/apps`. `UNINSTALL_MODE=rename` renames instead of deleting.
+  The SD card `install` installs only once and then logs on every start (permanent logger).
 
 ## 6. Tests
 

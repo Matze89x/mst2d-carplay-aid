@@ -24,9 +24,9 @@ LIMITED="${LIMITED:-0}"
 LIMBIN=/tmp/limbin.$$
 if [ "$LIMITED" != "0" ]; then
   rm -rf "$LIMBIN"; mkdir -p "$LIMBIN"
-  # LIMITED=1: genau die Programme, die das echte Radio beim Start hat (gemessen im zweiten Test); LIMITED=2: nur die zwingenden
-  # LIMITED=1: exactly the programs the real radio has at boot (measured in the second test); LIMITED=2: only the essential ones
-  if [ "$LIMITED" = "2" ]; then SET="cp rm mkdir chmod ls mount grep"; else SET="cp rm mkdir chmod ls mount grep awk touch date sync mv sleep cat ln uname find df pwd env"; fi
+  # LIMITED=1: genau die Programme, die das echte Radio beim Start hat (gemessen im zweiten Test); LIMITED=2: die zwingenden plus mv und sleep
+  # LIMITED=1: exactly the programs the real radio has at boot (measured in the second test); LIMITED=2: the essential ones plus mv and sleep
+  if [ "$LIMITED" = "2" ]; then SET="cp rm mkdir chmod ls mount grep mv sleep"; else SET="cp rm mkdir chmod ls mount grep awk touch date sync mv sleep cat ln uname find df pwd env"; fi
   for t in $SET; do ln -s "$(command -v $t)" "$LIMBIN/$t"; done
   echo "EINGESCHRAENKTE UMGEBUNG / LIMITED ENVIRONMENT: PATH=$LIMBIN ($(ls "$LIMBIN" | tr '\n' ' '))"
 fi
@@ -50,7 +50,7 @@ mock() {  # mock <wurzel>: Nachbau von /extbin/apps und /etc / mock of /extbin/a
   cp "$STOCK/hmi/HMI/config/bundles.properties" "$R/apps/hmi/HMI/config/"
   cp "$PROCMAN" "$R/etc/procman_core.cfg"
 }
-snapshot() { ( cd "$1" && find . -type f | sort | xargs sha256sum ) ; }   # STRENG: alles zaehlt / STRICT: everything counts
+snapshot() { ( cd "$1" && find . -type f -not -path '*.entfernt-*' | sort | xargs sha256sum ) ; }   # STRENG: alles zaehlt / STRICT: everything counts
 run() {  # run <shell> <root> <sd-backup-dir> <args...>
   SH="$1"; R="$2"; SDB="$3"; shift 3
   lim APP_ROOT="$R/apps" ETC_DIR="$R/etc" SD_BACKUP_DIR="$SDB" "$SH" "$STAGE/install.sh" "$@" 2>&1
@@ -148,6 +148,22 @@ for SH in $SHELLS; do
     runun "$SH" "$W/d" "$W/sd/u2" > /dev/null
     [ "$(snapshot "$W/d")" = "$(cat "$W/d.before")" ] && ok "Deinstallation: Geraet exakt wie vorher (Community-Variante byteidentisch)" || bad "Community-Variante/Geraet NICHT identisch zurueck"
   fi
+  echo "[10] Deinstallation ganz ohne Sicherung: Rueckbau (runHMI.sh) + eigene Kopie (STOCK_DIR), Modus rename / uninstall without any backup: jar removal + own copy, rename mode"
+  mock "$W/g"; snapshot "$W/g" > "$W/g.before"
+  run "$SH" "$W/g" "$W/sd/g1" > /dev/null
+  rm -rf "$W/g/apps/mst2-eu-carplay-maps-backup"
+  mkdir -p "$W/stockcopy"; cp "$STOCK/cfg/iap2.cfg" "$STOCK/hmi/HMI/config/bundles.properties" "$PROCMAN" "$W/stockcopy/"
+  OUT=$(lim APP_ROOT="$W/g/apps" ETC_DIR="$W/g/etc" SD_BACKUP_DIR="$W/sd/g2" STOCK_DIR="$W/stockcopy" UNINSTALL_MODE=rename UNINSTALL_SUFFIX=T1 "$SH" "$STAGE/uninstall.sh" 2>&1); echo "$OUT" | tail -3
+  echo "$OUT" | grep -q "UMBENANNT" && ok "Deinstallation meldet: umbenannt" || bad "Deinstallation (ohne Sicherung) fehlgeschlagen"
+  [ "$(snapshot "$W/g")" = "$(cat "$W/g.before")" ] && ok "Radio exakt wie vor der Installation (ohne Sicherung)" || bad "Radio NICHT wie vorher"
+  [ -d "$W/g/apps/mst2-eu-carplay-maps.entfernt-T1" ] && ok "Ordner umbenannt (.entfernt-T1), nichts geloescht" || bad "kein umbenannter Ordner"
+  echo "$OUT" | grep -q "Rueckbau" && echo "$OUT" | grep -q "eigene Kopie" && ok "Quellen im Protokoll" || bad "Quellen fehlen im Protokoll"
+  mock "$W/h"; snapshot "$W/h" > "$W/h.before"
+  run "$SH" "$W/h" "$W/sd/h1" > /dev/null
+  rm -rf "$W/h/apps/mst2-eu-carplay-maps-backup" "$W/stockcopy/iap2.cfg"
+  OUT=$(lim APP_ROOT="$W/h/apps" ETC_DIR="$W/h/etc" SD_BACKUP_DIR="$W/sd/h2" STOCK_DIR="$W/stockcopy" "$SH" "$STAGE/uninstall.sh" 2>&1)
+  echo "$OUT" | grep -q "keine gueltige Quelle fuer iap2.cfg" && ok "fehlende Quelle: Abbruch vor jeder Aenderung" || bad "fehlende Quelle nicht gemeldet"
+  [ "$(snapshot "$W/h")" != "$(cat "$W/h.before")" ] && [ -f "$W/h/apps/mst2-eu-carplay-maps/.installed" ] && ok "Radio blieb dabei im installierten Zustand (nichts halb zurueckgebaut)" || bad "halb zurueckgebaut"
   rm -rf "$W"
 done
 rm -rf "$LIMBIN"

@@ -11,7 +11,9 @@ test('installer is driven by stage.conf and keeps a reversible stock backup',()=
   assert.match(install,/mst2-eu-carplay-maps-backup/);
   assert.match(install,/sha256sum/);
   assert.match(install,/chmod 755 .*runHMI\.sh/);
-  assert.match(uninstall,/restore runHMI\.sh .* 755/);
+  assert.match(uninstall,/restore "\$S_HMI" "\$HMI_LIVE" 755/);
+  assert.match(uninstall,/pick runHMI\.sh \|\| fail/);   // alle Quellen werden VOR jeder Aenderung gewaehlt und geprueft
+  assert.match(uninstall,/Nachkontrolle/);
   assert.doesNotMatch(install,/rm\s+-rf/);
   assert.doesNotMatch(uninstall,/rm\s+-rf/);
 });
