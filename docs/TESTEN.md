@@ -2,7 +2,7 @@
 
 **Deutsch zuerst – English version below: [English](#english).**
 
-> **Wichtig: Dieses Projekt ist nur für das Gerät `MST2_EU_VW_P0879D` (EU) bestimmt und am Fahrzeug erst teilweise geprüft (Beta 4: Installation und Deinstallation sauber, aber Absturz des Navigationsprogramms; die Korrektur in Beta 5 ist ungeprüft).**
+> **Wichtig: Dieses Projekt ist nur für das Gerät `MST2_EU_VW_P0879D` (EU) bestimmt und am Fahrzeug erst teilweise geprüft (Beta 4 und 6: Installation und Deinstallation sauber; mit angeschlossenem iPhone fällt das Radio nach etwa 1,5 Minuten aus – siehe [`FAHRZEUGTESTS.md`](FAHRZEUGTESTS.md)). Bitte zuerst auf dem Tisch testen und das iPhone nicht im Fahrzeug anschließen, solange der Fehler offen ist.**
 > Wer es ausprobiert, tut das auf eigene Gefahr; es kann zu einer Boot-Schleife führen. Für US-Geräte (`MST2_US_VW_P0867D`)
 > bitte das Original verwenden: <https://github.com/tehfalcon-vw/mst2-nar-carplay-maps>.
 
@@ -51,7 +51,7 @@ eine Boot-Schleife bezeichnen jeweils eine andere noch offene Grenze.
 
 # Volunteer testers wanted
 
-> **Important: this project is intended only for the unit `MST2_EU_VW_P0879D` (EU) and has only been partly verified in a vehicle (beta 4: installation and uninstall clean, but the navigation program crashed; the fix in beta 5 is unverified).**
+> **Important: this project is intended only for the unit `MST2_EU_VW_P0879D` (EU) and has only been partly verified in a vehicle (beta 4 and 6: installation and uninstall clean; with an iPhone connected the radio drops out after about 1.5 minutes – see [`FAHRZEUGTESTS.md`](FAHRZEUGTESTS.md)). Please test on a bench first and do not connect an iPhone in a vehicle while the bug is open.**
 > Anyone trying it does so at their own risk; it can cause a boot loop. For US units (`MST2_US_VW_P0867D`) please use the
 > original: <https://github.com/tehfalcon-vw/mst2-nar-carplay-maps>.
 

@@ -5,7 +5,7 @@
 > **Dieses Repository ist ausschließlich für den EU-Markt und das Gerät `MST2_EU_VW_P0879D` bestimmt.**
 > Es ist **nicht** für Nordamerika (US/NAR) und nicht für andere Geräte gedacht. Für das US-Gerät `MST2_US_VW_P0867D` bitte das
 > Original-Repository verwenden: <https://github.com/tehfalcon-vw/mst2-nar-carplay-maps>.
-> **Bisher nur Installation und Start auf einem Fahrzeug geprüft, alles andere noch nicht** (siehe unten und [`TESTEN.md`](TESTEN.md)).
+> **Am Fahrzeug geprüft: Installation, Start, Deinstallation. Offener Fehler: Radio fällt beim iPhone-Anschluss aus; CarPlay/Kartenvideo unbestätigt** (siehe unten und [`TESTEN.md`](TESTEN.md)).
 
 Ausgangspunkt ist das Original `tehfalcon-vw/mst2-nar-carplay-maps` (Version 0.1.0-beta.1, MIT-Lizenz), das auf
 `cartellone99/delphi-carplay-cluster-bridge` (MIT) aufbaut. Die Lizenz- und Herkunftshinweise bleiben in `LICENSE` und
@@ -139,7 +139,7 @@ Zündungswechsel, Langfahrten. Auch das Original ist nach Angabe seines Autors a
 > **This repository is intended exclusively for the EU market and the unit `MST2_EU_VW_P0879D`.**
 > It is **not** for North America (US/NAR) and not for any other unit. For the US unit `MST2_US_VW_P0867D` please use the
 > original repository: <https://github.com/tehfalcon-vw/mst2-nar-carplay-maps>.
-> **So far only installation and boot were verified on one vehicle, everything else is not** (see below and [`TESTEN.md`](TESTEN.md)).
+> **Verified in a vehicle: installation, boot, uninstall. Open bug: the radio drops out when an iPhone is connected; CarPlay/map video unconfirmed** (see below and [`TESTEN.md`](TESTEN.md)).
 
 The starting point is the original `tehfalcon-vw/mst2-nar-carplay-maps` (version 0.1.0-beta.1, MIT license), which builds on
 `cartellone99/delphi-carplay-cluster-bridge` (MIT). License and attribution notices remain in `LICENSE` and `NOTICE`. The
