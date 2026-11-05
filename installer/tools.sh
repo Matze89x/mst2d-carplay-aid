@@ -18,7 +18,7 @@
 
 T_LOADED=1
 T_ESSENTIAL="cp rm mkdir chmod ls mount grep"
-T_OPTIONAL="rmdir cmp diff wc head tail cut tr awk id dirname touch sha256sum cksum date uptime sync mv expr sleep cat"
+T_OPTIONAL="slay rmdir cmp diff wc head tail cut tr awk id dirname touch sha256sum cksum date uptime sync mv expr sleep cat"
 
 # PATH wie das Boot-Skript des Radios (/etc/rc) plus die ueblichen Ordner / PATH like the radio's boot script plus the usual folders
 if [ "${MST2_NO_EXTRA_PATH:-0}" != "1" ]; then
