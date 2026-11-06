@@ -24,6 +24,17 @@ Stand: 2026-11-05. Alle Angaben stammen aus Protokollen von Radios, die beim Tes
 3. Etwa 1:30 Minuten später: `mm-ipod`, `io-usb-dcd` und `mdnsd` sind wieder weg, der USB-Treiber `io-usb` startet neu.
 4. Etwa 40 Sekunden danach hört das Protokoll auf zu schreiben: das Radio ist ausgegangen oder hat sich zurückgesetzt. Es gibt keine Absturzdatei.
 
+## Neu in beta.7: mögliche Ursache des Aussetzens, Schutz eingebaut (noch nicht im Auto geprüft)
+
+Beim Lesen des Treibers `ipod-drvr-iap2.so` (P0879D) und eines verwandten Projekts (TechniSat/Preh, `perkthefox/mst2-cluster-nav`) ist uns eine plausible Erklärung aufgefallen. Statisch belegt (Disassemblierung):
+
+- In `link_handle_payload` (0x169b0) zählt der Treiber bei jeder **IdentificationRejected**-Meldung einen Zähler bei `Gerät+0xb0` hoch. Ab der **7. Ablehnung** schreibt er ins Log und ruft `exit(-1)` auf. `mm-ipod` beendet sich dann. Der Zähler wird nirgends zurückgesetzt.
+- `ident_info_reject_recv` (0x10d68) kennt nur die Parameter-IDs 6 bis 24. Wird unsere zusätzliche Komponente (Gruppe 30) abgelehnt, schaltet der Treiber sie **nicht** ab, sie wird bei jeder Wiederholung erneut angeboten.
+
+**Nicht belegt:** ob das iPhone die Komponente wirklich ablehnt, und ob das das Aussetzen nach rund 1,5 Minuten erklärt. In den bisherigen Protokollen steht nur „EU RGI component offered“; `iap2.log` liegt im RAM und ist nach dem Neustart weg.
+
+**Schutz:** Der Hook liest den Zähler und bietet die Komponente nur an, solange er 0 ist. Sein Log (`/dev/shmem/mst2-eu-rgi.log`) wird jetzt fortgeschrieben und nennt den Zählerstand („rejections so far: N“). Ein Logiktest mit nachgebauten Treiberfunktionen (`native/delphi-qnx/host_test.sh`) prüft das Verhalten; er sagt nichts darüber, was ein echtes iPhone oder der echte Treiber tut.
+
 ## Was wir **nicht** wissen
 
 - Warum das Radio ausgeht. Das Protokoll des iPhone-Teils (`/dev/shmem/iap2.log`, etwa 148 KB) liegt im Arbeitsspeicher und war nach dem Neustart weg; der Logger sicherte es damals nicht (inzwischen behoben).
@@ -75,6 +86,17 @@ Status: 2026-11-05. All statements come from logs that the radios wrote to the S
 2. About 3:35 minutes after the start: iPhone connected. `mm-ipod`, `io-usb-dcd` and `mdnsd` start, our hook reports "EU RGI component offered". `CarPlay` and `NavigationServer` keep running with unchanged process numbers.
 3. About 1:30 minutes later: `mm-ipod`, `io-usb-dcd` and `mdnsd` are gone again, the USB driver `io-usb` restarts.
 4. About 40 seconds later the log stops: the radio switched off or reset. There is no crash file.
+
+## New in beta.7: a possible cause of the drop-out, guard added (not yet checked in a car)
+
+Reading the driver `ipod-drvr-iap2.so` (P0879D) and a related project (TechniSat/Preh, `perkthefox/mst2-cluster-nav`) suggested a plausible explanation. Established statically (disassembly):
+
+- In `link_handle_payload` (0x169b0) the driver increments a counter at `device+0xb0` on every **IdentificationRejected** message. From the **7th rejection** on it logs and calls `exit(-1)`, so `mm-ipod` quits. The counter is never reset.
+- `ident_info_reject_recv` (0x10d68) knows only parameter IDs 6 to 24. If our extra component (group 30) is rejected, the driver does **not** switch it off, and it is offered again on every repeat.
+
+**Not established:** whether the iPhone really rejects the component, and whether that explains the drop-out after about 1.5 minutes. The logs so far only say "EU RGI component offered"; `iap2.log` lives in RAM and is gone after the restart.
+
+**Guard:** the hook reads the counter and offers the component only while it is 0. Its log (`/dev/shmem/mst2-eu-rgi.log`) is now appended to and names the counter ("rejections so far: N"). A logic test with faked driver functions (`native/delphi-qnx/host_test.sh`) checks the behaviour; it says nothing about what a real iPhone or the real driver does.
 
 ## What we do **not** know
 

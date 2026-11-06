@@ -88,3 +88,15 @@ test('native hooks use the QNX 6.5 dlsym handles and never call an unresolved fu
   assert.match(src('src/launch_hook.c'), /if\(!next\)return -1;/);
   assert.match(src('src/airplay_hook.c'), /dcc_library_symbol\("libAirPlaySupport\.so"/);
 });
+
+test('the iPhone hook leaves its component out once the stock driver counted a rejection', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const hook = fs.readFileSync(path.join(__dirname, '..', 'native', 'delphi-qnx', 'src', 'ipod_hook.c'), 'utf8');
+  // Treiber ipod-drvr-iap2.so (P0879D), link_handle_payload 0x169b0: dev[0xb0]++, ab dem 7. Ablehnung exit(-1).
+  assert.match(hook, /#define REJECT_COUNT_OFFSET 0xb0u/);
+  assert.match(hook, /rejected!=0u/);
+  assert.match(hook, /rejections so far/);
+  // Das Log wird fortgeschrieben, nicht bei jedem Eintrag ueberschrieben. / the log is appended to
+  assert.match(hook, /lseek\(fd,0,SEEK_END\)/);
+});

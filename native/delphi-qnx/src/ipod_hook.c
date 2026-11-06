@@ -16,6 +16,13 @@
 #define CONTROL_TABLE_VADDR 0xb5ae8u
 #define RGI_GROUP 0x52u
 #define RGI_COMPONENT 0x0010u
+/* Rejection counter of the stock driver, found in link_handle_payload (0x169b0): on every IdentificationRejected
+ * "n = dev[0xb0]++; if (n > 5) { log; exit(-1); }" followed by ident_info_reject_recv() and a new identification.
+ * Nothing else writes it, it is never reset, and ident_info_reject_recv() knows only parameter IDs 6..24, so a
+ * rejected group 30 (our component) is never switched off by the stock code. Offering it again every time would
+ * make mm-ipod exit on the 7th rejection. We offer it only while the counter is still 0. */
+#define REJECT_COUNT_OFFSET 0xb0u
+#define LOG_LIMIT 3000
 
 struct message_info {
     const char *name;
@@ -38,9 +45,25 @@ static struct message_info route_messages[5] = {
 };
 int dcc_relay_start(void);
 
+/* Appends one line (the file lives in RAM and starts empty after a reboot); starts over once it is too large. */
 static void note(const char *text){
-    int fd=open(LOG_FILE,O_WRONLY|O_CREAT|O_TRUNC,0666);
-    if(fd>=0){write(fd,text,strlen(text));close(fd);}
+    int fd=open(LOG_FILE,O_WRONLY|O_CREAT,0666);
+    off_t end;
+    if(fd<0)return;
+    end=lseek(fd,0,SEEK_END);
+    if(end>LOG_LIMIT){close(fd);fd=open(LOG_FILE,O_WRONLY|O_CREAT|O_TRUNC,0666);if(fd<0)return;}
+    write(fd,text,strlen(text));
+    close(fd);
+}
+static void note_count(const char *text,uint32_t value){
+    char line[96];size_t n=strlen(text);char digits[11];unsigned d=0;
+    if(n>sizeof(line)-14)return;
+    memcpy(line,text,n);
+    if(value==0)digits[d++]='0';
+    while(value&&d<10){digits[d++]=(char)('0'+value%10u);value/=10u;}
+    while(d)line[n++]=digits[--d];
+    line[n++]='\n';line[n]=0;
+    note(line);
 }
 
 static int add_route_component(void *device,void *packet){
@@ -49,8 +72,16 @@ static int add_route_component(void *device,void *packet){
         255,255,255,255,6,255,6
     };
     uint8_t payload[128];size_t bytes=0;int result=stock_gps_builder(device,packet);
-    int fd;
+    int fd;uint32_t rejected;
     if(result<0)return result;
+    /* Repeated identification after a rejection: leave our component out so the driver cannot reach its limit. */
+    rejected=device?*(volatile uint32_t *)((uintptr_t)device+REJECT_COUNT_OFFSET):0u;
+    if(rejected!=0u){
+        fd=open(READY,O_WRONLY|O_CREAT|O_TRUNC,0666);
+        if(fd>=0){write(fd,"omitted\n",8);close(fd);}
+        note_count("iPhone rejected the identification, RGI component omitted; rejections so far: ",rejected);
+        return result;
+    }
     if(dcc_identify_component_payload(&profile,payload,sizeof(payload),&bytes)!=DCC_OK||
        packet_add_blob(device,packet,0x1e,payload,(unsigned)bytes)<0){
         note("RGI component rejected locally; stock Identify retained\n");
@@ -58,7 +89,7 @@ static int add_route_component(void *device,void *packet){
     }
     fd=open(READY,O_WRONLY|O_CREAT|O_TRUNC,0666);
     if(fd>=0){write(fd,"offered\n",8);close(fd);}
-    note("EU RGI component offered\n");
+    note("EU RGI component offered (rejections so far: 0)\n");
     return result;
 }
 
