@@ -100,3 +100,19 @@ test('the iPhone hook leaves its component out once the stock driver counted a r
   // Das Log wird fortgeschrieben, nicht bei jedem Eintrag ueberschrieben. / the log is appended to
   assert.match(hook, /lseek\(fd,0,SEEK_END\)/);
 });
+
+test('the CarPlay hook sends iAP2 0x5200 only after the ipod hook offered its component and stops when the relay saw 0x52xx', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const src = (name) => fs.readFileSync(path.join(__dirname, '..', 'native', 'delphi-qnx', name), 'utf8');
+  const sender = src('src/rgi_start.c');
+  // Rahmen laut Referenzprojekt: 40 40 00 0c 52 00 00 06 00 00 00 10 / frame as in the reference project
+  assert.match(sender, /\{0x40, 0x40, 0x00, 0x0c, 0x52, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x10\}/);
+  assert.match(sender, /rgi_file_starts\(RGI_READY, "offered"\)/);
+  assert.match(sender, /rgi_file_starts\(RGI_SEEN, "1"\)/);
+  assert.match(sender, /libiap2client\.so\.1/);
+  assert.match(src('src/airplay_hook.c'), /dcc_rgi_start_init\(\);/);
+  assert.match(src('src/relay.c'), /mark_seen\(1\)/);
+  assert.match(src('src/ipod_hook.c'), /"pending\\n"/);
+  assert.match(src('build.sh'), /rgi_start\.o/);
+});

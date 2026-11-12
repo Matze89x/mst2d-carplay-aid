@@ -406,6 +406,8 @@ static int resolve_cf(void)
     return 0;
 }
 
+void dcc_rgi_start_init(void);   /* src/rgi_start.c: sends iAP2 0x5200 so that the phone starts route guidance */
+
 void dcc_airplay_hook_init(void)
 {
     uint32_t copy_expected[2] = {0xe92d4ff0u, 0xe24dde4du};
@@ -413,6 +415,7 @@ void dcc_airplay_hook_init(void)
     uint32_t teardown_expected[2] = {0xe92d4ff0u, 0xe24dd04cu};
     uint32_t setup_literal;
     enabled = 0;
+    dcc_rgi_start_init();
     if (dcc_airplay_hook_resolve(&exact) || resolve_cf()) return;
     setup_literal = *(const uint32_t *)(exact.base + 0x17548u);
     stock_server_info = (server_info_fn)dcc_runtime_hook_install(

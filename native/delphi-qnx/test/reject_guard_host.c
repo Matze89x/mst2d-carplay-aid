@@ -35,7 +35,7 @@ int open(const char *path,int flags,...){
     if(f<0){
         if(!(flags&O_CREAT))return -1;
         for(i=0;i<4;i++)if(!files[i].used){f=i;files[i].used=1;files[i].size=0;
-            for(int k=0;path[k]&&k<63;k++)files[i].name[k]=path[k];break;}
+            {int k=0;for(;path[k]&&k<63;k++)files[i].name[k]=path[k];files[i].name[k]=0;}break;}
     }
     if(f<0)return -1;
     if(flags&O_TRUNC)files[f].size=0;

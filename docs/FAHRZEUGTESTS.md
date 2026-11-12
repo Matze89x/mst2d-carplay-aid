@@ -35,6 +35,16 @@ Beim Lesen des Treibers `ipod-drvr-iap2.so` (P0879D) und eines verwandten Projek
 
 **Schutz:** Der Hook liest den Zähler und bietet die Komponente nur an, solange er 0 ist. Sein Log (`/dev/shmem/mst2-eu-rgi.log`) wird jetzt fortgeschrieben und nennt den Zählerstand („rejections so far: N“). Ein Logiktest mit nachgebauten Treiberfunktionen (`native/delphi-qnx/host_test.sh`) prüft das Verhalten; er sagt nichts darüber, was ein echtes iPhone oder der echte Treiber tut.
 
+## Neu in beta.8: Start-Nachricht 0x5200 wird gesendet (noch nicht im Auto geprüft)
+
+Der Vergleich mit dem TechniSat-Projekt `perkthefox/mst2-cluster-nav` zeigte eine Lücke: Das iPhone sendet Routendaten (0x5201/0x5202/0x5204) erst, **nachdem das Auto `StartRouteGuidanceUpdate` (0x5200) geschickt hat**. Bis beta.7 wurde diese Nachricht zwar gebaut, aber nie gesendet; der Delphi-Treiber sendet sie von selbst nicht.
+
+- Neu: `libmst2_eu_airplay.so` (läuft im Prozess `CarPlay`) startet einen Sender. Er nutzt `libiap2client.so.1` (`iap2_connect`, `iap2_raw_msg_send`, `iap2_disconnect`, im `CarPlay`-Prozess schon geladen) und sendet einen 12-Byte-Rahmen an `/dev/ipod0`. Das ist der Pfad aus der Firmware; dass genau diese Zeichenkette an den Aufrufstellen übergeben wird, ist nicht bis zur Adresse aufgelöst.
+- Er sendet nur, wenn der iPhone-Hook die Komponente angeboten hat (`/dev/shmem/mst2-eu-rgi-ready` = `offered`; nach einer Ablehnung `omitted`, vor der ersten Identifikation `pending`), alle 2 s zehnmal, danach alle 30 s, und hört auf, sobald die erste Routen-Nachricht im `iap2.log` steht (Marke `/dev/shmem/mst2-eu-rgi-seen` = `1`). Eine Datei `/dev/shmem/mst2-eu-rgi-nosend` schaltet ihn ab.
+- Wirksam in den Bisect-Stufen mit `m` **und** `c` (`nmc`); ohne `m` wird die Komponente nie angeboten, dann wird nichts gesendet.
+- Geprüft nur mit nachgebauten Funktionen (`native/delphi-qnx/host_test.sh`): Zeitpunkt, Rahmen, Wiederholung, Abbruch. Was ein echtes iPhone, `mm-ipod` oder die echte `libiap2client.so` tun, ist offen. Es ist möglich, dass das Senden das Verhalten beim Anschluss ändert; darum bleibt die Stufenfolge des Bisect-Tests.
+- Im Auto zu lesen: Hook-Log (`0x5200 sent …` oder eine Fehlerzeile), Marke `…-seen`, im `iap2.log` Treffer `msgid=5201`.
+
 ## Was wir **nicht** wissen
 
 - Warum das Radio ausgeht. Das Protokoll des iPhone-Teils (`/dev/shmem/iap2.log`, etwa 148 KB) liegt im Arbeitsspeicher und war nach dem Neustart weg; der Logger sicherte es damals nicht (inzwischen behoben).
@@ -97,6 +107,16 @@ Reading the driver `ipod-drvr-iap2.so` (P0879D) and a related project (TechniSat
 **Not established:** whether the iPhone really rejects the component, and whether that explains the drop-out after about 1.5 minutes. The logs so far only say "EU RGI component offered"; `iap2.log` lives in RAM and is gone after the restart.
 
 **Guard:** the hook reads the counter and offers the component only while it is 0. Its log (`/dev/shmem/mst2-eu-rgi.log`) is now appended to and names the counter ("rejections so far: N"). A logic test with faked driver functions (`native/delphi-qnx/host_test.sh`) checks the behaviour; it says nothing about what a real iPhone or the real driver does.
+
+## New in beta.8: the start message 0x5200 is now sent (not yet checked in a car)
+
+The comparison with the TechniSat project `perkthefox/mst2-cluster-nav` showed a gap: the iPhone sends route guidance (0x5201/0x5202/0x5204) only **after the car has sent `StartRouteGuidanceUpdate` (0x5200)**. Up to beta.7 the message was built but never sent; the Delphi driver does not send it by itself.
+
+- New: `libmst2_eu_airplay.so` (runs in the `CarPlay` process) starts a sender. It uses `libiap2client.so.1` (`iap2_connect`, `iap2_raw_msg_send`, `iap2_disconnect`, already loaded in `CarPlay`) and sends a 12-byte frame to `/dev/ipod0`. That is the path from the firmware; that exactly this string is passed at the call sites was not resolved down to the address.
+- It sends only when the iPhone hook offered its component (`/dev/shmem/mst2-eu-rgi-ready` = `offered`; `omitted` after a rejection, `pending` before the first identification), ten times every 2 s and then every 30 s, and stops once the first route message appears in `iap2.log` (mark `/dev/shmem/mst2-eu-rgi-seen` = `1`). A file `/dev/shmem/mst2-eu-rgi-nosend` switches it off.
+- Active in the bisect stages with `m` **and** `c` (`nmc`); without `m` the component is never offered, so nothing is sent.
+- Checked only with faked functions (`native/delphi-qnx/host_test.sh`): timing, frame, retry, stop. What a real iPhone, `mm-ipod` or the real `libiap2client.so` do is open. Sending may change the behaviour on connect, which is why the staged bisect order stays.
+- To read in the car: hook log (`0x5200 sent …` or an error line), the `…-seen` mark, hits for `msgid=5201` in `iap2.log`.
 
 ## What we do **not** know
 

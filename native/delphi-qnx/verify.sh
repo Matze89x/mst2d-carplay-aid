@@ -39,9 +39,10 @@ readelf --dyn-syms --wide "$AIRPLAY_RUNTIME" | grep -Eq 'GLOBAL +DEFAULT +[0-9]+
 readelf --dyn-syms --wide "$AIRPLAY_RUNTIME" | grep -Eq 'GLOBAL +DEFAULT +[0-9]+ +dcc_runtime_hook_install$'
 readelf --dyn-syms --wide "$AIRPLAY_RUNTIME" | grep -Eq 'GLOBAL +DEFAULT +[0-9]+ +dcc_alt111_ingress_begin$'
 readelf --dyn-syms --wide "$AIRPLAY_RUNTIME" | grep -Eq 'GLOBAL +DEFAULT +[0-9]+ +dcc_alt111_ingress_feed$'
-unexpected=$(imports "$AIRPLAY" | grep -Ev '^(accept|close|delay|dlopen|dlsym|ftruncate|memcpy|memset|mmap|mprotect|msync|munmap|open|pthread_create|pthread_join|read|shutdown)$' || true)
+unexpected=$(imports "$AIRPLAY" | grep -Ev '^(accept|close|delay|dlopen|dlsym|ftruncate|lseek|memcpy|memset|mmap|mprotect|msync|munmap|open|pthread_create|pthread_detach|pthread_join|read|shutdown|strlen|write)$' || true)
 test -z "$unexpected"
 readelf -d "$AIRPLAY" | grep -q '(INIT)'
 readelf --dyn-syms --wide "$AIRPLAY" | grep -Eq 'GLOBAL +DEFAULT +[0-9]+ +AES_CBCFrame_Init$'
 readelf --syms --wide "$AIRPLAY" | grep -Eq '[0-9]+ +dcc_airplay_hook_init$'
+readelf --syms --wide "$AIRPLAY" | grep -Eq '[0-9]+ +dcc_rgi_start_init$'
 echo 'EU ARM ELF payload verified'

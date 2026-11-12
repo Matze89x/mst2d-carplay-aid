@@ -118,6 +118,7 @@ void dcc_delphi_init(void){
     stock_gps_builder=(int (*)(void *,void *))(uintptr_t)slot[1];
     packet_add_blob=(int (*)(void *,void *,unsigned,const void *,unsigned))blob;
     if(dcc_relay_start()!=0){note("EU RGI relay thread unavailable; stock behavior\n");return;}
+    {int fd=open(READY,O_WRONLY|O_CREAT|O_TRUNC,0666);if(fd>=0){write(fd,"pending\n",8);close(fd);}}  /* a new mm-ipod: nothing offered yet */
     groups[RGI_GROUP].info=route_messages;
     groups[RGI_GROUP].count=5;
     slot[1]=(uint32_t)(uintptr_t)add_route_component;
