@@ -55,6 +55,15 @@ Der Vergleich mit `perkthefox/mst2-cluster-nav` zeigte, dass unsere `/info`-Antw
 - Einschalten: Bisect-Stufe `nmcb` (nach `nmc`, setzt die Datei in dem Start, in dem sie aktiv ist, `MODUS.txt` zeigt `nmcb`) oder per Telnet `schalter.sh info-b` (ohne Neustart, ab der nächsten iPhone-Verbindung; `info-a` schaltet zurück).
 - Geprüft nur mit einem nachgebauten Core Foundation (`native/delphi-qnx/host_test.sh`): Form des Wörterbuchs, Schutz bei unerwarteter Eingabe. Ob das iPhone Schema B annimmt und Stream 111 anfordert, ist offen; bei perkthefox selbst fordert es ihn bei einem Anwender trotz dieses Schemas nicht an (Issue 2). Eine falsche `/info`-Antwort könnte auch das normale CarPlay-Bild stören; darum ist es nur die letzte Stufe.
 
+## Neu in beta.10: zwei Fehler im Video-Weg behoben, die erst ein echter H.264-Strom zeigte (noch nicht im Auto geprüft)
+
+Beide Fehler fanden sich offline: ein echter H.264-Strom (x264, High 3.1, 1010×376) wurde durch unseren Code geschickt und mit `ffprobe`/`ffmpeg` geprüft.
+
+- **PMT im MPEG-TS:** Unser Packer schrieb in die Programmtabelle (PMT) als Video- und Zeit-PID `0x100`, die Videopakete liegen aber auf `0x11`. Ein Empfänger, der die PMT liest, hätte kein Video gefunden. Jetzt nennt die PMT die PID der Pakete. Der Test `ts_test` schlägt mit dem alten Code fehl.
+- **avcC mit Erweiterung:** `dcc_avc_configure` lehnte jede avcC-Konfiguration ab, die bei High Profile (100, 110, 122, 144) die vier Erweiterungsbytes am Ende hat (`fd f8 f8 00`, so schreiben x264 und ffmpeg sie). Jetzt werden sie akzeptiert, andere Reste bleiben verboten. Ob der iPhone-Encoder sie mitsendet, ist offen.
+
+Danach: AVCC → Annex-B → MPEG-TS für 100 Bilder; `ffmpeg` decodiert fehlerfrei, die Bild-Prüfsummen sind identisch zur Referenz-Dekodierung der MP4-Datei, PTS steigend, High 3.1, 1010×376, PID 0x11. Das prüft nur unseren Code, nicht, ob das Radio oder das Kombi den Strom annimmt. Die Prüfwerkzeuge liegen privat unter `tools/ts_probe/` (nicht im Repository, brauchen ffmpeg).
+
 ## Was wir **nicht** wissen
 
 - Warum das Radio ausgeht. Das Protokoll des iPhone-Teils (`/dev/shmem/iap2.log`, etwa 148 KB) liegt im Arbeitsspeicher und war nach dem Neustart weg; der Logger sicherte es damals nicht (inzwischen behoben).
@@ -137,6 +146,15 @@ The comparison with `perkthefox/mst2-cluster-nav` showed that our `/info` answer
 - The safe area and sizes are our previous values, not perkthefox's; they depend on the cluster.
 - Switch on: bisect stage `nmcb` (after `nmc`, sets the file in the start where it is active, `MODUS.txt` shows `nmcb`) or over Telnet `schalter.sh info-b` (no restart, from the next iPhone connection; `info-a` switches back).
 - Checked only with a faked Core Foundation (`native/delphi-qnx/host_test.sh`): shape of the dictionary, guards against unexpected input. Whether the iPhone accepts schema B and requests stream 111 is open; with perkthefox itself one user's iPhone does not request it despite this schema (issue 2). A wrong `/info` answer could also disturb the normal CarPlay picture, which is why it is only the last stage.
+
+## New in beta.10: two errors in the video path fixed that only a real H.264 stream showed (not yet checked in a car)
+
+Both were found offline: a real H.264 stream (x264, High 3.1, 1010×376) was run through our code and checked with `ffprobe`/`ffmpeg`.
+
+- **PMT in the MPEG-TS:** our packer wrote `0x100` as video and PCR PID into the program map table (PMT), but the video packets use `0x11`. A receiver reading the PMT would have found no video. The PMT now names the PID of the packets. The test `ts_test` fails with the old code.
+- **avcC with extension:** `dcc_avc_configure` rejected every avcC record that carries the four extension bytes at the end for High profiles (100, 110, 122, 144; `fd f8 f8 00`, as written by x264 and ffmpeg). They are accepted now, other trailing data stays refused. Whether the iPhone encoder sends them is open.
+
+Afterwards: AVCC → Annex-B → MPEG-TS for 100 pictures; `ffmpeg` decodes without errors, the picture checksums equal the reference decode of the MP4 file, PTS increasing, High 3.1, 1010×376, PID 0x11. This checks our code only, not whether the radio or the cluster accepts the stream. The check tools are private under `tools/ts_probe/` (not in the repository, they need ffmpeg).
 
 ## What we do **not** know
 

@@ -46,7 +46,13 @@ int dcc_avc_configure(struct dcc_avc *avc, const uint8_t *data, size_t length)
         if (offset + n > length || append_parameter(&next, data + offset, n)) return -1;
         offset += n;
     }
-    if (offset != length) return -1;
+    /* High profiles (100, 110, 122, 144) may end with the four extension bytes chroma_format, bit depths and the SPS-extension count
+     * (x264/ffmpeg write them; found with a real High 3.1 stream). Anything else after the PPS is refused as before. */
+    if (offset != length) {
+        int high = data[1] == 100 || data[1] == 110 || data[1] == 122 || data[1] == 144;
+        if (!high || length - offset != 4u || (data[offset] & 0xfcu) != 0xfcu || (data[offset + 1u] & 0xf8u) != 0xf8u ||
+            (data[offset + 2u] & 0xf8u) != 0xf8u || data[offset + 3u] != 0u) return -1;
+    }
     *avc = next;
     return 0;
 }

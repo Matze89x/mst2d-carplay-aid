@@ -45,8 +45,14 @@ static int tables(struct dcc_ts_mux *m, dcc_ts_sink sink, void *opaque)
 {
     uint8_t pat[16] = {0x00,0xb0,0x0d,0x00,0x01,0xc1,0x00,0x00,
                        0x00,0x01,0xf0,0x00,0,0,0,0};
+    /* PCR PID and the H.264 stream's elementary PID are the video PID the packets really use (they were 0x100 in the template, so
+     * a receiver that reads the PMT would have found no video; found with ffprobe on a real H.264 stream). */
     uint8_t pmt[21] = {0x02,0xb0,0x12,0x00,0x01,0xc1,0x00,0x00,
-                       0xe1,0x00,0xf0,0x00,0x1b,0xe1,0x00,0xf0,0x00,0,0,0,0};
+                       0xe0,0x00,0xf0,0x00,0x1b,0xe0,0x00,0xf0,0x00,0,0,0,0};
+    pmt[8] = (uint8_t)(0xe0u | ((DCC_TS_VIDEO_PID >> 8) & 0x1fu));
+    pmt[9] = (uint8_t)DCC_TS_VIDEO_PID;
+    pmt[13] = pmt[8];
+    pmt[14] = pmt[9];
     put_crc(pat, 12);
     put_crc(pmt, 17);
     if (psi(DCC_TS_PAT_PID, &m->pat_cc, pat, sizeof(pat), sink, opaque)) return -1;

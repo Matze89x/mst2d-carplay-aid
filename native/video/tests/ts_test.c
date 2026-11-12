@@ -26,6 +26,12 @@ int main(void)
     packets = c.used / 188u;
     if (packets < 3u || pid(c.bytes) != 0 || pid(c.bytes + 188u) != 0x1000u) return 2;
     if (c.bytes[5] != 0x00 || c.bytes[188u + 5u] != 0x02) return 3;
+    {   /* the PMT must announce the PID the video packets use (PCR PID and elementary PID) */
+        const uint8_t *s = c.bytes + 188u + 5u;
+        unsigned pcr = ((unsigned)(s[8] & 0x1fu) << 8) | s[9];
+        unsigned es = ((unsigned)(s[13] & 0x1fu) << 8) | s[14];
+        if (s[12] != 0x1b || pcr != DCC_TS_VIDEO_PID || es != DCC_TS_VIDEO_PID) return 9;
+    }
     for (i = 0; i < packets; ++i) {
         const uint8_t *p = c.bytes + i * 188u;
         if (p[0] != 0x47) return 4;
