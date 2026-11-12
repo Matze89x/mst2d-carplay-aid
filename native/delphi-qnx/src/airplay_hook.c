@@ -1,17 +1,9 @@
 #include "dcc_alt111_ingress.h"
+#include "dcc_info_schema.h"
 #include "dcc_qnx.h"
 #include "dcc_resolve.h"
 #include "dcc_runtime_hook.h"
 
-typedef const void *CFTypeRef;
-typedef const void *CFStringRef;
-typedef const void *CFDictionaryRef;
-typedef void *CFMutableDictionaryRef;
-typedef const void *CFArrayRef;
-typedef void *CFMutableArrayRef;
-typedef long CFIndex;
-typedef int32_t OSStatus;
-typedef unsigned char Boolean;
 typedef void *AirPlayReceiverSessionRef;
 
 #define CF_UTF8 0x08000100u
@@ -60,6 +52,24 @@ static CFMutableArrayRef (*cf_array_copy)(void *, CFIndex, CFArrayRef);
 static const void *dict_key_callbacks;
 static const void *dict_value_callbacks;
 static const void *array_callbacks;
+
+/* /info schema: A (default) = the one inherited from the US fork; B = the one perkthefox/mst2-cluster-nav uses for the same plug-in.
+ * B is switched on by a RAM file whose first character is 'b' (written by the SD script in a bisect stage or by hand over Telnet);
+ * the file is read at every /info and SETUP, so removing it switches back. */
+#define SCHEMA_FILE "/dev/shmem/mst2-eu-rgi-infoschema"
+#define CLUSTER_UUID "b7e6c5a0-2222-4000-8000-000000000002"
+static const CFTypeRef *cf_true;
+static DccCfApi cf_api;
+
+static int schema_b(void)
+{
+    char c = 0;
+    int fd = open(SCHEMA_FILE, O_RDONLY);
+    if (fd < 0) return 0;
+    if (read(fd, &c, 1) != 1) c = 0;
+    close(fd);
+    return c == 'b' || c == 'B';
+}
 
 static volatile int enabled;
 static volatile int receiver_stop;
@@ -235,8 +245,17 @@ static CFDictionaryRef hooked_server_info(AirPlayReceiverSessionRef session,
     CFDictionaryRef result = stock_server_info ?
         stock_server_info(session, properties, mac, error) : NULL;
     if (enabled && result) {
-        add_features((CFMutableDictionaryRef)result);
-        add_display((CFMutableDictionaryRef)result);
+        if (schema_b()) {
+            static const DccClusterDisplay cluster = {
+                CLUSTER_UUID, "Instrument Cluster", "maps:/car/instrumentcluster/map",
+                CLUSTER_WIDTH, CLUSTER_HEIGHT, CLUSTER_WIDTH_MM, CLUSTER_HEIGHT_MM, 25,
+                0, 58, CLUSTER_WIDTH, 248
+            };
+            (void)dcc_info_schema_b(&cf_api, (CFMutableDictionaryRef)result, &cluster);
+        } else {
+            add_features((CFMutableDictionaryRef)result);
+            add_display((CFMutableDictionaryRef)result);
+        }
     }
     return result;
 }
@@ -339,7 +358,8 @@ static OSStatus hooked_setup(AirPlayReceiverSessionRef session,
     if (!stock_setup) return -1;
     result = stock_setup(session, request, &response);
     if (result || !enabled || !response) goto done;
-    add_features((CFMutableDictionaryRef)response);
+    /* Schema B: only the first control SETUP (the one that answers eventPort) names the features, as in the reference project. */
+    if (!schema_b() || dict_get(response, "eventPort")) add_features((CFMutableDictionaryRef)response);
     alt = find_alt(request);
     if (!alt || dict_i64(alt, "streamConnectionID", &connection_id) ||
         connection_id <= 0) goto done;
@@ -403,6 +423,23 @@ static int resolve_cf(void)
     RESOLVE(dict_value_callbacks, "kCFLDictionaryValueCallBacksCFLTypes");
     RESOLVE(array_callbacks, "kCFLArrayCallBacksCFLTypes");
 #undef RESOLVE
+    cf_true = (const CFTypeRef *)dlsym(RTLD_DEFAULT, "kCFLBooleanTrue");   /* optional */
+    cf_api.string = cf_string;
+    cf_api.release = cf_release;
+    cf_api.dict_get = cf_dict_get;
+    cf_api.dict_set = cf_dict_set;
+    cf_api.dict_set_i64 = cf_dict_set_i64;
+    cf_api.dict_count = cf_dict_count;
+    cf_api.dict_pairs = cf_dict_pairs;
+    cf_api.dict_new = cf_dict_new;
+    cf_api.array_count = cf_array_count;
+    cf_api.array_get = cf_array_get;
+    cf_api.array_append = cf_array_append;
+    cf_api.array_new = cf_array_new;
+    cf_api.dict_key_callbacks = dict_key_callbacks;
+    cf_api.dict_value_callbacks = dict_value_callbacks;
+    cf_api.array_callbacks = array_callbacks;
+    cf_api.true_value = cf_true;
     return 0;
 }
 

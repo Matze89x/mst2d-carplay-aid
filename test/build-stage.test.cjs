@@ -116,3 +116,20 @@ test('the CarPlay hook sends iAP2 0x5200 only after the ipod hook offered its co
   assert.match(src('src/ipod_hook.c'), /"pending\\n"/);
   assert.match(src('build.sh'), /rgi_start\.o/);
 });
+
+test('the AirPlay hook can describe the cluster display in schema B (perkthefox style), switched by a RAM file, default unchanged', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const src = (name) => fs.readFileSync(path.join(__dirname, '..', 'native', 'delphi-qnx', name), 'utf8');
+  const schema = src('src/info_schema.c');
+  for (const key of ['displayPanels', 'extendedFeatures', 'initialVideoStreams', 'drawUIOutsideSafeArea', 'properties']) {
+    assert.match(schema, new RegExp(`"${key}"`), `schema B sets ${key}`);
+  }
+  assert.doesNotMatch(schema, /"type"/, 'the cluster display of schema B has no type key');
+  assert.match(schema, /array_count\(stock\) != 1/);
+  const hook = src('src/airplay_hook.c');
+  assert.match(hook, /SCHEMA_FILE "\/dev\/shmem\/mst2-eu-rgi-infoschema"/);
+  assert.match(hook, /if \(schema_b\(\)\) \{[\s\S]*dcc_info_schema_b[\s\S]*\} else \{[\s\S]*add_features[\s\S]*add_display/);
+  assert.match(hook, /!schema_b\(\) \|\| dict_get\(response, "eventPort"\)/);
+  assert.match(src('build.sh'), /info_schema\.o/);
+});

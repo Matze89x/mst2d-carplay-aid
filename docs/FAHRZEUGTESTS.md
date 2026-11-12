@@ -45,6 +45,16 @@ Der Vergleich mit dem TechniSat-Projekt `perkthefox/mst2-cluster-nav` zeigte ein
 - Geprüft nur mit nachgebauten Funktionen (`native/delphi-qnx/host_test.sh`): Zeitpunkt, Rahmen, Wiederholung, Abbruch. Was ein echtes iPhone, `mm-ipod` oder die echte `libiap2client.so` tun, ist offen. Es ist möglich, dass das Senden das Verhalten beim Anschluss ändert; darum bleibt die Stufenfolge des Bisect-Tests.
 - Im Auto zu lesen: Hook-Log (`0x5200 sent …` oder eine Fehlerzeile), Marke `…-seen`, im `iap2.log` Treffer `msgid=5201`.
 
+## Neu in beta.9: AirPlay-Beschreibung der zweiten Anzeige als „Schema B", schaltbar (noch nicht im Auto geprüft)
+
+Der Vergleich mit `perkthefox/mst2-cluster-nav` zeigte, dass unsere `/info`-Antwort an das iPhone anders aufgebaut ist als bei dem Projekt, das auf demselben AirPlay-Plug-in (SDK 210.81) im Auto lief: dort `extendedFeatures` (bei uns `enabledFeatures`), zusätzlich `displayPanels`, und die Hauptanzeige bekommt `uid` und `initialVideoStreams`.
+
+- Standard bleibt **Schema A** (wie bisher). **Schema B** wird nur eingeschaltet, wenn die RAM-Datei `/dev/shmem/mst2-eu-rgi-infoschema` mit `b` beginnt. Sie wird bei jedem `/info` und SETUP gelesen; ohne Datei gilt wieder Schema A.
+- Schema B: `/info` mit `extendedFeatures` = `altScreen`, `viewAreas`; `displays` und `displayPanels` mit Hauptanzeige (alle Stock-Schlüssel plus `uid`, `initialVideoStreams`) und Kombi-Anzeige (ohne `type`, mit `properties`, `drawUIOutsideSafeArea`, `maxFPS` 25); `enabledFeatures` in der SETUP-Antwort nur beim ersten Steuer-SETUP. Gibt es nicht genau eine Stock-Anzeige mit `uuid`, bleibt `/info` unverändert.
+- Der sichere Bereich (Safe Area) und die Maße sind unsere bisherigen Werte, nicht die von perkthefox; sie hängen vom Kombi ab.
+- Einschalten: Bisect-Stufe `nmcb` (nach `nmc`, setzt die Datei in dem Start, in dem sie aktiv ist, `MODUS.txt` zeigt `nmcb`) oder per Telnet `schalter.sh info-b` (ohne Neustart, ab der nächsten iPhone-Verbindung; `info-a` schaltet zurück).
+- Geprüft nur mit einem nachgebauten Core Foundation (`native/delphi-qnx/host_test.sh`): Form des Wörterbuchs, Schutz bei unerwarteter Eingabe. Ob das iPhone Schema B annimmt und Stream 111 anfordert, ist offen; bei perkthefox selbst fordert es ihn bei einem Anwender trotz dieses Schemas nicht an (Issue 2). Eine falsche `/info`-Antwort könnte auch das normale CarPlay-Bild stören; darum ist es nur die letzte Stufe.
+
 ## Was wir **nicht** wissen
 
 - Warum das Radio ausgeht. Das Protokoll des iPhone-Teils (`/dev/shmem/iap2.log`, etwa 148 KB) liegt im Arbeitsspeicher und war nach dem Neustart weg; der Logger sicherte es damals nicht (inzwischen behoben).
@@ -117,6 +127,16 @@ The comparison with the TechniSat project `perkthefox/mst2-cluster-nav` showed a
 - Active in the bisect stages with `m` **and** `c` (`nmc`); without `m` the component is never offered, so nothing is sent.
 - Checked only with faked functions (`native/delphi-qnx/host_test.sh`): timing, frame, retry, stop. What a real iPhone, `mm-ipod` or the real `libiap2client.so` do is open. Sending may change the behaviour on connect, which is why the staged bisect order stays.
 - To read in the car: hook log (`0x5200 sent …` or an error line), the `…-seen` mark, hits for `msgid=5201` in `iap2.log`.
+
+## New in beta.9: AirPlay description of the second display as "schema B", switchable (not yet checked in a car)
+
+The comparison with `perkthefox/mst2-cluster-nav` showed that our `/info` answer to the iPhone is built differently from the project that ran on the same AirPlay plug-in (SDK 210.81) in a car: there `extendedFeatures` (ours: `enabledFeatures`), plus `displayPanels`, and the main display gets `uid` and `initialVideoStreams`.
+
+- The default stays **schema A** (as before). **Schema B** is switched on only when the RAM file `/dev/shmem/mst2-eu-rgi-infoschema` starts with `b`. It is read at every `/info` and SETUP; without the file schema A applies again.
+- Schema B: `/info` with `extendedFeatures` = `altScreen`, `viewAreas`; `displays` and `displayPanels` with the main display (all stock keys plus `uid`, `initialVideoStreams`) and the cluster display (no `type`, with `properties`, `drawUIOutsideSafeArea`, `maxFPS` 25); `enabledFeatures` in the SETUP answer only on the first control SETUP. If there is not exactly one stock display with a `uuid`, `/info` is left unchanged.
+- The safe area and sizes are our previous values, not perkthefox's; they depend on the cluster.
+- Switch on: bisect stage `nmcb` (after `nmc`, sets the file in the start where it is active, `MODUS.txt` shows `nmcb`) or over Telnet `schalter.sh info-b` (no restart, from the next iPhone connection; `info-a` switches back).
+- Checked only with a faked Core Foundation (`native/delphi-qnx/host_test.sh`): shape of the dictionary, guards against unexpected input. Whether the iPhone accepts schema B and requests stream 111 is open; with perkthefox itself one user's iPhone does not request it despite this schema (issue 2). A wrong `/info` answer could also disturb the normal CarPlay picture, which is why it is only the last stage.
 
 ## What we do **not** know
 
