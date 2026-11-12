@@ -2,6 +2,7 @@
 #include "dcc_resolve.h"
 #include "dcc_ts.h"
 #include "dcc_video_slot.h"
+#include "dcc_guard.h"
 #include <stdarg.h>
 
 #define ISO_TX "/dev/transport_server/spawn/isoTX"
@@ -18,6 +19,8 @@ typedef ssize_t (*write_fn)(int, const void *, size_t);
 typedef ssize_t (*writev_fn)(int, const struct iovec *, int);
 
 static volatile int custom_active;
+static int guarded;          /* the guard let this part start */
+static volatile int worker_started;
 static open_fn real_open;
 static close_fn real_close;
 static write_fn real_write;
@@ -166,14 +169,28 @@ static void resolve_real(void)
     if (!real_writev) real_writev = (writev_fn)dcc_library_symbol("libc.so.3", "writev");
 }
 
+/* The worker starts with the first open of the isoTX device (the process is fully up then), not in DT_INIT: a thread started before the
+ * process finished initialising made the reference project's unit reset right after boot. */
+static void start_worker_once(void)
+{
+    pthread_t worker;
+    if (worker_started || !guarded || dcc_guard_killed()) return;
+    worker_started = 1;
+    if (pthread_create(&worker, NULL, video_worker, NULL) == 0) pthread_detach(worker);
+}
+
 void dcc_video_gate_init(void)
 {
     int i;
-    pthread_t worker;
     custom_active = 0;
     for (i = 0; i < FD_CAP; ++i) iso_fds[i] = -1;
     resolve_real();
-    if (pthread_create(&worker, NULL, video_worker, NULL) == 0) pthread_detach(worker);
+    guarded = dcc_guard_start("gate");
+}
+
+void dcc_video_gate_fini(void)
+{
+    if (guarded) dcc_guard_end("gate");
 }
 
 int open(const char *path, int flags, ...)
@@ -188,7 +205,7 @@ int open(const char *path, int flags, ...)
         va_start(ap, flags); mode = va_arg(ap, int); va_end(ap);
         fd = next(path, flags, mode);
     } else fd = next(path, flags);
-    if (same(path, ISO_TX)) remember(fd);
+    if (same(path, ISO_TX)) { remember(fd); start_worker_once(); }
     return fd;
 }
 

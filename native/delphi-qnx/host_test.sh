@@ -12,3 +12,6 @@ ${CLANG:-clang} -std=gnu99 -O1 -ffreestanding -nostdlib -static -fno-stack-prote
 ${CLANG:-clang} -std=gnu99 -O1 -ffreestanding -nostdlib -static -fno-stack-protector -fno-builtin -Wall -Wextra -Werror \
   -I"$HERE/include" -I"$HERE/../rgi/include" -o "$OUT.schema" "$HERE/test/info_schema_host.c"
 "$OUT.schema"
+${CLANG:-clang} -std=gnu99 -O1 -ffreestanding -nostdlib -static -fno-stack-protector -fno-builtin -Wall -Wextra -Werror \
+  -I"$HERE/include" -I"$HERE/../rgi/include" -o "$OUT.guard" "$HERE/test/guard_host.c"
+"$OUT.guard"

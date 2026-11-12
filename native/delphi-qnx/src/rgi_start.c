@@ -19,6 +19,7 @@
  */
 #include "dcc_qnx.h"
 #include "dcc_resolve.h"
+#include "dcc_guard.h"
 
 #define RGI_READY "/dev/shmem/mst2-eu-rgi-ready"
 #define RGI_SEEN "/dev/shmem/mst2-eu-rgi-seen"
@@ -90,7 +91,7 @@ static int rgi_start_step(RgiStartState *state, unsigned long now_ms, const RgiS
     unsigned long interval;
     void *client;
     if (!state || !ops || !ops->connect_client || !ops->raw_send || !ops->disconnect_client) return 0;
-    if (rgi_file_exists(RGI_NOSEND)) return 0;
+    if (rgi_file_exists(RGI_NOSEND) || dcc_guard_killed()) return 0;
     if (!rgi_file_starts(RGI_READY, "offered")) return 0;
     seen = rgi_file_starts(RGI_SEEN, "1");
     if (seen) {

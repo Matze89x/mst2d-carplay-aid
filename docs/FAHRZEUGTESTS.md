@@ -64,6 +64,17 @@ Beide Fehler fanden sich offline: ein echter H.264-Strom (x264, High 3.1, 1010×
 
 Danach: AVCC → Annex-B → MPEG-TS für 100 Bilder; `ffmpeg` decodiert fehlerfrei, die Bild-Prüfsummen sind identisch zur Referenz-Dekodierung der MP4-Datei, PTS steigend, High 3.1, 1010×376, PID 0x11. Das prüft nur unseren Code, nicht, ob das Radio oder das Kombi den Strom annimmt. Die Prüfwerkzeuge liegen privat unter `tools/ts_probe/` (nicht im Repository, brauchen ffmpeg).
 
+## Neu in beta.11: Stabilität, Threads erst beim ersten Telefon und ein Selbstschutz (noch nicht im Auto geprüft)
+
+Das Projekt `perkthefox/mst2-cluster-nav` (TechniSat) berichtet, dass sein Radio direkt nach dem Booten zurücksetzte, weil ein Hintergrund-Thread startete, bevor der Speicherverwalter des Radios bereit war, und schützt sich durch mehrere Schalter. Das wurde hier nachgebaut, soweit es ohne beschreibbaren Flash-Speicher des Radios geht.
+
+- **Keine Threads im Initialisierungsteil mehr.** Der Arbeits-Thread der NavigationServer-Bibliothek (`n`) startet erst beim ersten Öffnen des `isoTX`-Geräts, der 0x5200-Sender im `CarPlay`-Prozess (`c`) beim ersten `/info` oder SETUP, der Relay in `mm-ipod` (`m`) beim ersten Aufbau der Identifikation. Vorher starteten alle drei (der Relay und der Arbeits-Thread seit dem Fork, der Sender seit beta.8) schon beim Laden der Bibliothek.
+- **Kill-Switch.** Eine Datei `mst2-eu-disable` im Hauptordner der SD-Karte (oder in `/dev/shmem`) lässt alle Teile durchreichen: keine Änderung an `mm-ipod`, keine Komponente, kein Sender, keine Video-Einspeisung. Die Teile prüfen die Datei an ihren Entscheidungsstellen, ohne Neustart.
+- **Absturzmarken.** Jeder Teil schreibt beim Start `1` in `/dev/shmem/mst2-eu-busy-<Teil>` und beim sauberen Ende `0` (DT_FINI, bei `mm-ipod` nach der ersten Identifikation). Findet ein Start `1`, ist der letzte Start abgestürzt: ein Strike. Drei Strikes in Folge schalten den Teil bis zum nächsten Start des Radios ab (`/dev/shmem/mst2-eu-off-<Teil>`). Ein sauberes Ende setzt die Strikes zurück. Das Log (`mst2-eu-rgi.log`) nennt den Grund.
+- **Grenzen:** Die Marken liegen im RAM. Sie schützen vor einem Teil, der innerhalb eines Starts immer wieder abstürzt, **nicht** vor einem Reset des ganzen Radios (perkthefox speichert auf dem Flash; für Delphi kennen wir keine beschreibbare Stelle für die Hooks). Ob QNX `DT_FINI` bei einem normalen Prozessende aufruft, ist nicht geprüft; wenn nicht, zählt ein normales Ende als Strike, und ein Teil wird nach drei Neustarts im selben Start abgeschaltet.
+- **Nicht enthalten:** die Umhüllung des iAP2-Empfangseingangs (Treiber meldet bei Routenführung womöglich „Device timed out"); dafür ist eine eigene Analyse des Delphi-Treibers nötig.
+- Geprüft mit nachgebauter Dateiverwaltung (`native/delphi-qnx/host_test.sh`): Kill-Switch an drei Stellen, Strikes, Zurücksetzen, Unabhängigkeit der Teile. Nicht geprüft: das Verhalten im Radio.
+
 ## Was wir **nicht** wissen
 
 - Warum das Radio ausgeht. Das Protokoll des iPhone-Teils (`/dev/shmem/iap2.log`, etwa 148 KB) liegt im Arbeitsspeicher und war nach dem Neustart weg; der Logger sicherte es damals nicht (inzwischen behoben).
@@ -155,6 +166,17 @@ Both were found offline: a real H.264 stream (x264, High 3.1, 1010×376) was run
 - **avcC with extension:** `dcc_avc_configure` rejected every avcC record that carries the four extension bytes at the end for High profiles (100, 110, 122, 144; `fd f8 f8 00`, as written by x264 and ffmpeg). They are accepted now, other trailing data stays refused. Whether the iPhone encoder sends them is open.
 
 Afterwards: AVCC → Annex-B → MPEG-TS for 100 pictures; `ffmpeg` decodes without errors, the picture checksums equal the reference decode of the MP4 file, PTS increasing, High 3.1, 1010×376, PID 0x11. This checks our code only, not whether the radio or the cluster accepts the stream. The check tools are private under `tools/ts_probe/` (not in the repository, they need ffmpeg).
+
+## New in beta.11: stability, threads start with the first phone, and a self-protection (not yet checked in a car)
+
+The project `perkthefox/mst2-cluster-nav` (TechniSat) reports that its unit reset right after boot because a background thread started before the unit's memory allocator was ready, and protects itself with several switches. This was rebuilt here as far as possible without a writable flash area on the radio.
+
+- **No threads in the initialisation function any more.** The worker thread of the NavigationServer library (`n`) starts with the first open of the `isoTX` device, the 0x5200 sender in the `CarPlay` process (`c`) with the first `/info` or SETUP, the relay in `mm-ipod` (`m`) with the first identification. Before, all three (relay and worker since the fork, the sender since beta.8) started when the library was loaded.
+- **Kill switch.** A file `mst2-eu-disable` in the root of the SD card (or in `/dev/shmem`) makes every part pass through: no change to `mm-ipod`, no component, no sender, no video feed. The parts check the file at their decision points, without a restart.
+- **Crash marks.** Each part writes `1` to `/dev/shmem/mst2-eu-busy-<part>` at its start and `0` at a clean end (DT_FINI; for `mm-ipod` after the first identification). A start that finds `1` means the last start died: a strike. Three strikes in a row switch the part off until the radio starts again (`/dev/shmem/mst2-eu-off-<part>`). A clean end resets the strikes. The log (`mst2-eu-rgi.log`) names the reason.
+- **Limits:** the marks live in RAM. They protect against a part that keeps dying within one start, **not** against a reset of the whole radio (perkthefox stores on flash; we know no writable place for the hooks on Delphi). Whether QNX calls `DT_FINI` on a normal process end is unchecked; if not, a normal end counts as a strike and a part is switched off after three starts in the same boot.
+- **Not included:** the wrapper around the iAP2 receive entry (the driver may report "Device timed out" during route guidance); that needs its own analysis of the Delphi driver.
+- Checked with a faked file system (`native/delphi-qnx/host_test.sh`): kill switch in three places, strikes, reset, independence of the parts. Not checked: the behaviour in the radio.
 
 ## What we do **not** know
 

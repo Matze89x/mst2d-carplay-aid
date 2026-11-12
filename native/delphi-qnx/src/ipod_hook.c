@@ -1,5 +1,6 @@
 #include "dcc_qnx.h"
 #include "dcc_identify.h"
+#include "dcc_guard.h"
 
 #define DRIVER "/extbin/apps/lib/ipod-drvr-iap2.so"
 #define READY "/dev/shmem/mst2-eu-rgi-ready"
@@ -44,6 +45,8 @@ static struct message_info route_messages[5] = {
     [4] = {"RouteGuidanceLaneGuidanceInformation",2,0,NULL}
 };
 int dcc_relay_start(void);
+static int guarded;          /* the guard let this part start */
+static int relay_started;    /* the relay thread starts with the first identification, not in DT_INIT */
 
 /* Appends one line (the file lives in RAM and starts empty after a reboot); starts over once it is too large. */
 static void note(const char *text){
@@ -76,11 +79,26 @@ static int add_route_component(void *device,void *packet){
     if(result<0)return result;
     /* Repeated identification after a rejection: leave our component out so the driver cannot reach its limit. */
     rejected=device?*(volatile uint32_t *)((uintptr_t)device+REJECT_COUNT_OFFSET):0u;
+    if(dcc_guard_killed()){
+        fd=open(READY,O_WRONLY|O_CREAT|O_TRUNC,0666);
+        if(fd>=0){write(fd,"omitted\n",8);close(fd);}
+        note("kill switch file present, RGI component omitted\n");
+        return result;
+    }
     if(rejected!=0u){
         fd=open(READY,O_WRONLY|O_CREAT|O_TRUNC,0666);
         if(fd>=0){write(fd,"omitted\n",8);close(fd);}
         note_count("iPhone rejected the identification, RGI component omitted; rejections so far: ",rejected);
         return result;
+    }
+    if(!relay_started){
+        if(dcc_relay_start()!=0){
+            fd=open(READY,O_WRONLY|O_CREAT|O_TRUNC,0666);
+            if(fd>=0){write(fd,"omitted\n",8);close(fd);}
+            note("EU RGI relay thread unavailable; component not offered\n");
+            return result;
+        }
+        relay_started=1;
     }
     if(dcc_identify_component_payload(&profile,payload,sizeof(payload),&bytes)!=DCC_OK||
        packet_add_blob(device,packet,0x1e,payload,(unsigned)bytes)<0){
@@ -90,6 +108,7 @@ static int add_route_component(void *device,void *packet){
     fd=open(READY,O_WRONLY|O_CREAT|O_TRUNC,0666);
     if(fd>=0){write(fd,"offered\n",8);close(fd);}
     note("EU RGI component offered (rejections so far: 0)\n");
+    dcc_guard_end("ipod");     /* the risky start-up window ended without a crash */
     return result;
 }
 
@@ -97,6 +116,7 @@ void dcc_delphi_init(void){
     void *main_image=dlopen(NULL,RTLD_LAZY),*driver,*module,*blob,*ident,*control;
     uintptr_t base;uint32_t *slot;struct message_group *groups;
     if(!main_image||!dlsym(main_image,"ipod_log"))return;
+    if(!(guarded=dcc_guard_start("ipod")))return;
     driver=dlopen(DRIVER,RTLD_LAZY|RTLD_GLOBAL);
     module=driver?dlsym(driver,"ipod_module"):NULL;
     blob=driver?dlsym(driver,"packet_addparam_blob"):NULL;
@@ -117,10 +137,11 @@ void dcc_delphi_init(void){
     }
     stock_gps_builder=(int (*)(void *,void *))(uintptr_t)slot[1];
     packet_add_blob=(int (*)(void *,void *,unsigned,const void *,unsigned))blob;
-    if(dcc_relay_start()!=0){note("EU RGI relay thread unavailable; stock behavior\n");return;}
     {int fd=open(READY,O_WRONLY|O_CREAT|O_TRUNC,0666);if(fd>=0){write(fd,"pending\n",8);close(fd);}}  /* a new mm-ipod: nothing offered yet */
     groups[RGI_GROUP].info=route_messages;
     groups[RGI_GROUP].count=5;
     slot[1]=(uint32_t)(uintptr_t)add_route_component;
     note("EU iAP2 RGI bindings active\n");
 }
+
+void dcc_ipod_fini(void){if(guarded)dcc_guard_end("ipod");}

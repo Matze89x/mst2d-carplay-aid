@@ -1,5 +1,6 @@
 #include "dcc_alt111_ingress.h"
 #include "dcc_info_schema.h"
+#include "dcc_guard.h"
 #include "dcc_qnx.h"
 #include "dcc_resolve.h"
 #include "dcc_runtime_hook.h"
@@ -72,6 +73,9 @@ static int schema_b(void)
 }
 
 static volatile int enabled;
+static int guarded;                 /* the guard let this part start */
+static volatile int sender_started;  /* the 0x5200 sender starts with the first phone, not in DT_INIT */
+static void start_sender_once(void);
 static volatile int receiver_stop;
 static int listen_fd = -1;
 static int client_fd = -1;
@@ -244,7 +248,8 @@ static CFDictionaryRef hooked_server_info(AirPlayReceiverSessionRef session,
 {
     CFDictionaryRef result = stock_server_info ?
         stock_server_info(session, properties, mac, error) : NULL;
-    if (enabled && result) {
+    if (enabled && result && !dcc_guard_killed()) {
+        start_sender_once();
         if (schema_b()) {
             static const DccClusterDisplay cluster = {
                 CLUSTER_UUID, "Instrument Cluster", "maps:/car/instrumentcluster/map",
@@ -357,7 +362,8 @@ static OSStatus hooked_setup(AirPlayReceiverSessionRef session,
     int port;
     if (!stock_setup) return -1;
     result = stock_setup(session, request, &response);
-    if (result || !enabled || !response) goto done;
+    if (result || !enabled || !response || dcc_guard_killed()) goto done;
+    start_sender_once();
     /* Schema B: only the first control SETUP (the one that answers eventPort) names the features, as in the reference project. */
     if (!schema_b() || dict_get(response, "eventPort")) add_features((CFMutableDictionaryRef)response);
     alt = find_alt(request);
@@ -444,6 +450,12 @@ static int resolve_cf(void)
 }
 
 void dcc_rgi_start_init(void);   /* src/rgi_start.c: sends iAP2 0x5200 so that the phone starts route guidance */
+static void start_sender_once(void)
+{
+    if (sender_started || !guarded || dcc_guard_killed()) return;
+    sender_started = 1;
+    dcc_rgi_start_init();
+}
 
 void dcc_airplay_hook_init(void)
 {
@@ -452,8 +464,8 @@ void dcc_airplay_hook_init(void)
     uint32_t teardown_expected[2] = {0xe92d4ff0u, 0xe24dd04cu};
     uint32_t setup_literal;
     enabled = 0;
-    dcc_rgi_start_init();
     if (dcc_airplay_hook_resolve(&exact) || resolve_cf()) return;
+    if (!(guarded = dcc_guard_start("airplay"))) return;
     setup_literal = *(const uint32_t *)(exact.base + 0x17548u);
     stock_server_info = (server_info_fn)dcc_runtime_hook_install(
         exact.copy_server_info, hooked_server_info, copy_expected,
@@ -466,4 +478,9 @@ void dcc_airplay_hook_init(void)
         DCC_ARM32_COPY_TWO, 0);
     if (!stock_server_info || !stock_setup || !stock_teardown) return;
     enabled = 1;
+}
+
+void dcc_airplay_fini(void)
+{
+    if (guarded) dcc_guard_end("airplay");
 }

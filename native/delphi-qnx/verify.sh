@@ -24,14 +24,19 @@ done
 readelf --dyn-syms --wide "$LAUNCH" | grep -Eq 'GLOBAL +DEFAULT +[0-9]+ +spawn$'
 readelf --dyn-syms --wide "$LAUNCH" | grep -Eq 'GLOBAL +DEFAULT +[0-9]+ +spawnp$'
 readelf -d "$IPOD" | grep -q '(INIT)'
+readelf -d "$IPOD" | grep -q '(FINI)'
+readelf -d "$LAUNCH" | grep -q '(INIT)'
+readelf -d "$LAUNCH" | grep -q '(FINI)'
+readelf -d "$VIDEO" | grep -q '(FINI)'
+readelf -d "$AIRPLAY" | grep -q '(FINI)'
 readelf -d "$VIDEO" | grep -q '(INIT)'
 readelf --syms --wide "$IPOD" | grep -Eq '[0-9]+ +dcc_delphi_init$'
 
 unexpected=$(imports "$IPOD" | grep -Ev '^(close|delay|dlopen|dlsym|lseek|memcmp|memcpy|memset|open|pthread_create|pthread_detach|read|rename|strlen|write)$' || true)
 test -z "$unexpected"
-unexpected=$(imports "$LAUNCH" | grep -Ev '^(dlopen|dlsym|strlen)$' || true)
+unexpected=$(imports "$LAUNCH" | grep -Ev '^(close|dlopen|dlsym|lseek|open|read|strlen|write)$' || true)
 test -z "$unexpected"
-unexpected=$(imports "$VIDEO" | grep -Ev '^(close|delay|dlopen|dlsym|lseek|memcpy|memset|mmap|open|pthread_create|pthread_detach|write|writev)$' || true)
+unexpected=$(imports "$VIDEO" | grep -Ev '^(close|delay|dlopen|dlsym|lseek|memcpy|memset|mmap|open|pthread_create|pthread_detach|read|strlen|write|writev)$' || true)
 test -z "$unexpected"
 unexpected=$(imports "$AIRPLAY_RUNTIME" | grep -Ev '^(close|dlsym|ftruncate|memcpy|memset|mmap|mprotect|msync|munmap|open)$' || true)
 test -z "$unexpected"

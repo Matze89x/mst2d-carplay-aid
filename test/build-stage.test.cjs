@@ -133,3 +133,33 @@ test('the AirPlay hook can describe the cluster display in schema B (perkthefox 
   assert.match(hook, /!schema_b\(\) \|\| dict_get\(response, "eventPort"\)/);
   assert.match(src('build.sh'), /info_schema\.o/);
 });
+
+test('no hook starts a thread in its DT_INIT function, and every part has the self-protection guard', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const src = (name) => fs.readFileSync(path.join(__dirname, '..', 'native', 'delphi-qnx', name), 'utf8');
+  // The reference project's unit reset right after boot when a thread started before the process was fully up.
+  const body = (text, signature) => {
+    const start = text.indexOf(signature);
+    assert.ok(start >= 0, `${signature} exists`);
+    let depth = 0, i = text.indexOf('{', start);
+    const begin = i;
+    for (; i < text.length; i += 1) {
+      if (text[i] === '{') depth += 1;
+      if (text[i] === '}') { depth -= 1; if (depth === 0) break; }
+    }
+    return text.slice(begin, i + 1);
+  };
+  assert.doesNotMatch(body(src('src/video_gate.c'), 'void dcc_video_gate_init(void)'), /pthread_create|start_worker_once/);
+  assert.doesNotMatch(body(src('src/airplay_hook.c'), 'void dcc_airplay_hook_init(void)'), /dcc_rgi_start_init|start_sender_once|pthread_create/);
+  assert.doesNotMatch(body(src('src/ipod_hook.c'), 'void dcc_delphi_init(void)'), /dcc_relay_start/);
+  assert.match(src('src/video_gate.c'), /remember\(fd\); start_worker_once\(\)/);
+  assert.match(src('src/airplay_hook.c'), /start_sender_once\(\);/);
+  assert.match(src('src/ipod_hook.c'), /if\(!relay_started\)/);
+  for (const [file, part] of [['src/video_gate.c', 'gate'], ['src/launch_hook.c', 'launch'], ['src/ipod_hook.c', 'ipod'], ['src/airplay_hook.c', 'airplay']]) {
+    assert.match(src(file), new RegExp(`dcc_guard_start\\("${part}"\\)`), `${file} starts the guard`);
+    assert.match(src(file), new RegExp(`dcc_guard_end\\("${part}"\\)`), `${file} ends the guard`);
+  }
+  assert.match(src('include/dcc_guard.h'), /mst2-eu-disable/);
+  for (const fini of ['dcc_video_gate_fini', 'dcc_launch_fini', 'dcc_ipod_fini', 'dcc_airplay_fini']) assert.match(src('build.sh'), new RegExp(`-fini ${fini}`));
+});

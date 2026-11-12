@@ -32,14 +32,14 @@ $CLANG $CFLAGS -c "$HERE/../rgi/src/dcc_identify.c" -o "$OUT/dcc_identify.o"
 $CLANG $CFLAGS -c "$HERE/../rgi/src/dcc_log.c" -o "$OUT/dcc_log.o"
 $CLANG $CFLAGS -c "$HERE/../rgi/src/dcc_route.c" -o "$OUT/dcc_route.o"
 $LLD -shared -z defs -z max-page-size=0x1000 --hash-style=sysv --gc-sections \
-  -soname libmst2_eu_ipod.so -init dcc_delphi_init \
+  -soname libmst2_eu_ipod.so -init dcc_delphi_init -fini dcc_ipod_fini \
   -o "$OUT/libmst2_eu_ipod.so" "$OUT/ipod_hook.o" "$OUT/relay.o" "$OUT/aeabi.o" "$OUT/dcc_rgi.o" \
   "$OUT/dcc_identify.o" "$OUT/dcc_log.o" "$OUT/dcc_route.o" "$OUT/libc.so.3"
 $LLD -shared -z defs -z max-page-size=0x1000 --hash-style=sysv --gc-sections \
-  -soname libmst2_eu_launch.so -o "$OUT/libmst2_eu_launch.so" \
+  -soname libmst2_eu_launch.so -init dcc_launch_init -fini dcc_launch_fini -o "$OUT/libmst2_eu_launch.so" \
   "$OUT/launch_hook.o" "$OUT/libc.so.3"
 $LLD -shared -z defs -z max-page-size=0x1000 --hash-style=sysv --gc-sections \
-  -soname libmst2_eu_video_gate.so -init dcc_video_gate_init \
+  -soname libmst2_eu_video_gate.so -init dcc_video_gate_init -fini dcc_video_gate_fini \
   -o "$OUT/libmst2_eu_video_gate.so" "$OUT/video_gate.o" "$OUT/dcc_ts.o" \
   "$OUT/dcc_video_slot.o" "$OUT/libc.so.3"
 $LLD -shared -z defs -z max-page-size=0x1000 --hash-style=sysv --gc-sections \
@@ -49,7 +49,7 @@ $LLD -shared -z defs -z max-page-size=0x1000 --hash-style=sysv --gc-sections \
   "$OUT/dcc_avc.o" "$OUT/dcc_screen.o" "$OUT/dcc_screen_session.o" \
   "$OUT/dcc_video_lifecycle.o" "$OUT/dcc_video_slot.o" "$OUT/aeabi.o" "$OUT/libc.so.3"
 $LLD -shared -z defs -z max-page-size=0x1000 --hash-style=sysv --gc-sections \
-  -soname libmst2_eu_airplay.so -init dcc_airplay_hook_init \
+  -soname libmst2_eu_airplay.so -init dcc_airplay_hook_init -fini dcc_airplay_fini \
   -o "$OUT/libmst2_eu_airplay.so" "$OUT/airplay_hook.o" "$OUT/rgi_start.o" "$OUT/info_schema.o" "$OUT/runtime_hook.o" \
   "$OUT/airplay_target.o" "$OUT/alt111_ingress.o" "$OUT/dcc_arm32_hook.o" \
   "$OUT/dcc_avc.o" "$OUT/dcc_screen.o" "$OUT/dcc_screen_session.o" \
